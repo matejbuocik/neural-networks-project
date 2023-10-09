@@ -109,6 +109,14 @@ void mult_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* result)
     }
 }
 
+void mult_scal_with_out(const Matrix* mat1, double fact, const Matrix* result) {
+    for (int i = 0; i < mat1->rows; i++) {
+        for (int j = 0; j < mat1->cols; j++) {
+            result->data[i][j] = mat1->data[i][j] * fact;
+        }
+    }
+}
+
 void apply_to_mat_with_out(const Matrix *mat, const Matrix *out, double (*fun)(double), bool transpose_out) {
     for (int i = 0; i < mat->rows; i++) {
         for (int j = 0; j < mat->cols; j++) {
@@ -143,4 +151,16 @@ Matrix matrix_from_array(int rows, int cols, double* array) {
     }
 
     return mat;
+}
+
+Matrix copy_mat(Matrix* mat) {
+    Matrix result = create_mat(mat->rows, mat->cols);
+
+    for (int i = 0; i < mat->rows; i++) {
+        for (int j = 0; j < mat->cols; j++) {
+            result.data[i][j] = mat->data[i][j];
+        }
+    }
+
+    return result;
 }

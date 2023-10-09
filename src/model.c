@@ -77,15 +77,19 @@ void initialize_weights(MLP* mlp, int seed, double max_val, double min_val) {
 
 // Function to forward pass (compute neuron outputs)
 Matrix forward_pass(MLP* mlp, Matrix input, bool prep_back) {
+    Matrix input_copy = copy_mat(&input);
+    mlp->input = &input_copy;
+
     for (int i = 0; i <= mlp->num_hidden_layers; i++) {
         // in first iteration consider input as previous layer
-        Matrix* prev_layer = ((i - 1) < 0) ? &input : mlp->neuron_outputs + i - 1;
+        Matrix* prev_layer = ((i - 1) < 0) ? mlp->input : mlp->neuron_outputs + i - 1;
 
         mult_mat_with_out(prev_layer, mlp->weights + i, mlp->inner_potentials + i);
         apply_to_mat_with_out(mlp->inner_potentials + i,
                               mlp->neuron_outputs + i,
                               mlp->activation_functions[i], false);
         
+        // can be moved to compute_derivatives or removed
         if (prep_back)
             apply_to_mat_with_out(mlp->inner_potentials + i,
                                   mlp->activation_derivatives + i,
@@ -112,17 +116,32 @@ void compute_derivatives(MLP* mlp, Matrix target_output) {
     for (int k = 0; k <= mlp->num_hidden_layers; k++) {
         for (int i = 0; i < mlp->weight_derivatives[k].rows; i++) {
             for (int j = 0; j < mlp->weight_derivatives[k].cols; j++) {
-                double prev = get_element(mlp->weight_derivatives + k, i, j);
+                double grad = get_element(mlp->weight_derivatives + k, i, j);
                 // compute derivative
+                Matrix* neuron_vals = ((k - 1) < 0) ? mlp->input : mlp->neuron_outputs + k - 1;
+                grad += get_element(mlp->error_derivatives + k, j, 0) * get_element(neuron_vals, 0, i);
+                set_element(mlp->weight_derivatives + k, i, j, grad);
             }
         }
     }
 }
 
-void set_derivatives_to_zero(MLP* mlp);
+void set_derivatives_to_zero(MLP* mlp) {
+    for (int k = 0; k <= mlp->num_hidden_layers; k++) {
+        mult_scal_with_out(mlp->weight_derivatives + k, 0.0, mlp->weight_derivatives + k);
+    }
+}
 
 // Function to update weights using stochastic gradient descent
-void update_weights(MLP* mlp, double learning_rate);
+void update_weights(MLP* mlp, double learning_rate) {
+    for (int k = 0; k <= mlp->num_hidden_layers; k++) {
+        mult_scal_with_out(mlp->weight_derivatives + k, learning_rate, mlp->weights + k);
+    }
+
+    set_derivatives_to_zero(mlp);
+}
 
 // Function to train the MLP using stochastic gradient descent
-void train(MLP* mlp, Matrix* input_data, Matrix* target_data, double learning_rate, int num_epochs, int batch_size);
+void train(MLP* mlp, Matrix* input_data, Matrix* target_data, double learning_rate, int num_batches, int batch_size) {
+    // create and train model
+}

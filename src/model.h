@@ -9,6 +9,7 @@ typedef double (*func_ptr)(double);
 */
 typedef struct {
     int input_size;                     /* Size of the input vector */
+    Matrix* input;                      /* TMP */
     int output_size;                    /* Size of the output vector */
     int num_hidden_layers;              /* Number of hidden layers */
     Matrix* weights;                    /* Array of weight matrices */
@@ -32,7 +33,7 @@ void free_mlp(MLP* mlp);
 void initialize_weights(MLP* mlp, int seed, double max_val, double min_val);
 
 /* Forward pass (compute neuron outputs) */
-Matrix forward_pass(MLP* mlp, Matrix input);
+Matrix forward_pass(MLP* mlp, Matrix input, bool prep_back);
 
 /* Compute derivatives during forward pass */
 void compute_derivatives(MLP* mlp, Matrix target_output);
@@ -44,4 +45,4 @@ void set_derivatives_to_zero(MLP* mlp);
 void update_weights(MLP* mlp, double learning_rate);
 
 /* Train the MLP using stochastic gradient descent */
-void train(MLP* mlp, Matrix* input_data, Matrix* target_data, double learning_rate, int num_epochs, int batch_size, double (*error_function)(Matrix, Matrix));
+void train(MLP* mlp, Matrix* input_data, Matrix* target_data, double learning_rate, int num_epochs, int batch_size);
