@@ -11,8 +11,8 @@ typedef struct {
     Matrix* weights;
     Matrix* inner_potentials;
     Matrix* neuron_outputs;
-    Matrix* error_derivatives;
-    Matrix* activation_derivatives;
+    Matrix* error_derivatives;  // transpone
+    Matrix* activation_derivatives;  // transpone
     Matrix* weight_derivatives;
     func_ptr* activation_functions;
     func_ptr* activation_funs_der;
@@ -29,7 +29,7 @@ void free_mlp(MLP* mlp);
 void initialize_weights(MLP* mlp, int seed, double max_val, double min_val);
 
 // Function to forward pass (compute neuron outputs)
-void forward_pass(MLP* mlp, Matrix input);
+Matrix forward_pass(MLP* mlp, Matrix input);
 
 // Function to compute derivatives during forward pass
 void compute_derivatives(MLP* mlp, Matrix target_output);

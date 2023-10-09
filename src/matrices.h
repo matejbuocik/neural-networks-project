@@ -21,10 +21,14 @@ void add_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out)
 
 Matrix add_mat(const Matrix* mat1, const Matrix* mat2);
 
+void sub_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out);
+
+Matrix sub_mat(const Matrix* mat1, const Matrix* mat2);
+
 void mult_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out);
 
 Matrix mult_mat(const Matrix* mat1, const Matrix* mat2);
 
-void apply_to_mat(const Matrix *mat, double (*fun)(double));
+void apply_to_mat_with_out(const Matrix *mat, const Matrix *out, double (*fun)(double));
 
 Matrix mat_from_array(int rows, int cols, double* array);

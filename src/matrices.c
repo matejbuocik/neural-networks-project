@@ -52,6 +52,28 @@ Matrix add_mat(const Matrix* mat1, const Matrix* mat2) {
     return result;
 }
 
+void sub_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out) {
+    int rows = mat1->rows;
+    int cols = mat1->cols;
+
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            out->data[i][j] = mat1->data[i][j] - mat2->data[i][j];
+        }
+    }
+}
+
+Matrix sub_mat(const Matrix* mat1, const Matrix* mat2) {
+    int rows = mat1->rows;
+    int cols = mat1->cols;
+
+    Matrix result = create_mat(rows, cols);
+
+    sub_mat_with_out(mat1, mat2, &result);
+
+    return result;
+}
+
 void mult_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out) {
     int rows1 = mat1->rows;
     int cols1 = mat1->cols;
@@ -79,10 +101,10 @@ Matrix mult_mat(const Matrix* mat1, const Matrix* mat2) {
     return result;
 }
 
-void apply_to_mat(const Matrix *mat, double (*fun)(double)) {
+void apply_to_mat_with_out(const Matrix *mat, const Matrix *out, double (*fun)(double)) {
     for (int i = 0; i < mat->rows; i++) {
         for (int j = 0; j < mat->cols; j++) {
-            mat->data[i][j] = fun(mat->data[i][j]);
+            out->data[i][j] = fun(mat->data[i][j]);
         }
     }
 }

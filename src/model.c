@@ -19,7 +19,7 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
     mlp.activation_funs_der = (func_ptr*)malloc((num_hidden_layers + 1) * sizeof(func_ptr));
 
     // initialize allocated arrays
-    for (int i = 0; i < num_hidden_layers + 1; i++) {
+    for (int i = 0; i <= num_hidden_layers; i++) {
         int rows = ((i - 1) < 0) ? input_size : hidden_layer_sizes[i - 1];
         int cols = (i >= num_hidden_layers) ? output_size : hidden_layer_sizes[i];
     
@@ -40,7 +40,7 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
 
 // Function to free memory used by the MLP
 void free_mlp(MLP* mlp) {
-    for (int i = 0; i < mlp->num_hidden_layers + 1; i++) {  
+    for (int i = 0; i <= mlp->num_hidden_layers; i++) {  
         free_mat(mlp->weights + i);
         free_mat(mlp->weight_derivatives + i);
 
@@ -64,7 +64,7 @@ void free_mlp(MLP* mlp) {
 void initialize_weights(MLP* mlp, int seed, double max_val, double min_val) {
     srand(seed);
 
-    for (int i = 0; i < mlp->num_hidden_layers + 1; i++) {
+    for (int i = 0; i <= mlp->num_hidden_layers; i++) {
         for (int j = 0; j < mlp->weights[i].rows; j++) {
             for (int k = 0; k < mlp->weights[i].cols; k++) {
                 double random_val = ((double)rand() / RAND_MAX) * (max_val - min_val) + min_val;
@@ -75,12 +75,24 @@ void initialize_weights(MLP* mlp, int seed, double max_val, double min_val) {
 }
 
 // Function to forward pass (compute neuron outputs)
-void forward_pass(MLP* mlp, Matrix input) {
+Matrix forward_pass(MLP* mlp, Matrix input) {
+    for (int i = 0; i <= mlp->num_hidden_layers; i++) {
+        // in first iteration consider input as previous layer
+        Matrix* prev_layer = ((i - 1) < 0) ? &input : mlp->neuron_outputs + i - 1;
 
+        mult_mat_with_out(prev_layer, mlp->weights + i, mlp->inner_potentials + i);
+        apply_to_mat_with_out(mlp->inner_potentials + i, mlp->neuron_outputs + i, mlp->activation_functions[i]);
+        // does not nned to be in a purely forward pass
+        apply_to_mat_with_out(mlp->inner_potentials + i, mlp->activation_derivatives + i, mlp->activation_funs_der[i]);
+    }
+
+    return mlp->neuron_outputs[mlp->num_hidden_layers];
 }
 
 // Function to compute derivatives during forward pass
-void compute_derivatives(MLP* mlp, Matrix target_output);
+void compute_derivatives(MLP* mlp, Matrix target_output) {
+    
+}
 
 void set_derivatives_to_zero(MLP* mlp);
 
