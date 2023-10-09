@@ -40,6 +40,10 @@ void mult_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out
 /* Multiply two matrices, create a new one for result*/
 Matrix mult_mat(const Matrix* mat1, const Matrix* mat2);
 
+void mult_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* result);
+
 void apply_to_mat_with_out(const Matrix *mat, const Matrix *out, double (*fun)(double), bool transpose_out);
+
+Matrix transpose_mat(const Matrix* input);
 
 Matrix mat_from_array(int rows, int cols, double* array);

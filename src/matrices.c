@@ -101,6 +101,14 @@ Matrix mult_mat(const Matrix* mat1, const Matrix* mat2) {
     return result;
 }
 
+void mult_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* result) {
+    for (int i = 0; i < mat1->rows; i++) {
+        for (int j = 0; j < mat1->cols; j++) {
+            result->data[i][j] = mat1->data[i][j] * mat2->data[i][j];
+        }
+    }
+}
+
 void apply_to_mat_with_out(const Matrix *mat, const Matrix *out, double (*fun)(double), bool transpose_out) {
     for (int i = 0; i < mat->rows; i++) {
         for (int j = 0; j < mat->cols; j++) {
@@ -111,6 +119,18 @@ void apply_to_mat_with_out(const Matrix *mat, const Matrix *out, double (*fun)(d
             }
         }
     }
+}
+
+Matrix transpose_mat(const Matrix* input) {
+    Matrix result = create_mat(input->cols, input->rows);
+
+    for (int i = 0; i < input->rows; i++) {
+        for (int j = 0; j < input->cols; j++) {
+            result.data[j][i] = input->data[i][j];
+        }
+    }
+
+    return result;
 }
 
 Matrix matrix_from_array(int rows, int cols, double* array) {

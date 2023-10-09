@@ -82,18 +82,41 @@ Matrix forward_pass(MLP* mlp, Matrix input, bool prep_back) {
         Matrix* prev_layer = ((i - 1) < 0) ? &input : mlp->neuron_outputs + i - 1;
 
         mult_mat_with_out(prev_layer, mlp->weights + i, mlp->inner_potentials + i);
-        apply_to_mat_with_out(mlp->inner_potentials + i, mlp->neuron_outputs + i, mlp->activation_functions[i], false);
-
+        apply_to_mat_with_out(mlp->inner_potentials + i,
+                              mlp->neuron_outputs + i,
+                              mlp->activation_functions[i], false);
+        
         if (prep_back)
-            apply_to_mat_with_out(mlp->inner_potentials + i, mlp->activation_derivatives + i, mlp->activation_funs_der[i], true);
+            apply_to_mat_with_out(mlp->inner_potentials + i,
+                                  mlp->activation_derivatives + i,
+                                  mlp->activation_funs_der[i], true);
     }
 
     return mlp->neuron_outputs[mlp->num_hidden_layers];
 }
 
-// Function to compute derivatives during forward pass
+// Function to compute derivatives during backward pass
 void compute_derivatives(MLP* mlp, Matrix target_output) {
+    Matrix deriv_last = sub_mat(mlp->neuron_outputs + mlp->num_hidden_layers, &target_output);
+    Matrix deriv_last_T = transpose_mat(&deriv_last);
+    free_mat(&deriv_last);
 
+    mult_with_out(&deriv_last_T, mlp->activation_derivatives + mlp->num_hidden_layers,
+                  mlp->error_derivatives + mlp->num_hidden_layers);
+
+    for (int i = mlp->num_hidden_layers - 1; i >= 0; i++) {
+        mult_mat_with_out(mlp->weights + i + 1, mlp->error_derivatives + i + 1, mlp->error_derivatives + i);
+        mult_with_out(mlp->error_derivatives + i, mlp->activation_derivatives + i, mlp->error_derivatives + i);
+    }
+
+    for (int k = 0; k <= mlp->num_hidden_layers; k++) {
+        for (int i = 0; i < mlp->weight_derivatives[k].rows; i++) {
+            for (int j = 0; j < mlp->weight_derivatives[k].cols; j++) {
+                double prev = get_element(mlp->weight_derivatives + k, i, j);
+                // compute derivative
+            }
+        }
+    }
 }
 
 void set_derivatives_to_zero(MLP* mlp);
