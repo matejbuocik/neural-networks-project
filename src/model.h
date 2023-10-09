@@ -26,13 +26,15 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
 void free_mlp(MLP* mlp);
 
 // Function to initialize weights randomly
-void initialize_weights(MLP* mlp, int seed);
+void initialize_weights(MLP* mlp, int seed, double max_val, double min_val);
 
 // Function to forward pass (compute neuron outputs)
 void forward_pass(MLP* mlp, Matrix input);
 
 // Function to compute derivatives during forward pass
 void compute_derivatives(MLP* mlp, Matrix target_output);
+
+void set_derivatives_to_zero(MLP* mlp);
 
 // Function to update weights using stochastic gradient descent
 void update_weights(MLP* mlp, double learning_rate);

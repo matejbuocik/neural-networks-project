@@ -61,15 +61,28 @@ void free_mlp(MLP* mlp) {
 }
 
 // Function to initialize weights randomly
-void initialize_weights(MLP* mlp, int seed) {
-    
+void initialize_weights(MLP* mlp, int seed, double max_val, double min_val) {
+    srand(seed);
+
+    for (int i = 0; i < mlp->num_hidden_layers + 1; i++) {
+        for (int j = 0; j < mlp->weights[i].rows; j++) {
+            for (int k = 0; k < mlp->weights[i].cols; k++) {
+                double random_val = ((double)rand() / RAND_MAX) * (max_val - min_val) + min_val;
+                set_element(mlp->weights + i, j, k, random_val);
+            }
+        }
+    }
 }
 
 // Function to forward pass (compute neuron outputs)
-void forward_pass(MLP* mlp, Matrix input);
+void forward_pass(MLP* mlp, Matrix input) {
+
+}
 
 // Function to compute derivatives during forward pass
 void compute_derivatives(MLP* mlp, Matrix target_output);
+
+void set_derivatives_to_zero(MLP* mlp);
 
 // Function to update weights using stochastic gradient descent
 void update_weights(MLP* mlp, double learning_rate);
