@@ -2,7 +2,7 @@
 #include <assert.h>
 
 
-Matrix create_matrix(int rows, int cols) {
+Matrix create_mat(int rows, int cols) {
     Matrix mat;
     mat.rows = rows;
     mat.cols = cols;
@@ -15,7 +15,7 @@ Matrix create_matrix(int rows, int cols) {
     return mat;
 }
 
-void free_matrix(Matrix* mat) {
+void free_mat(Matrix* mat) {
     for (int i = 0; i < mat->rows; i++) {
         free(mat->data[i]);
     }
@@ -30,17 +30,24 @@ double get_element(const Matrix* mat, int row, int col) {
     return mat->data[row][col];
 }
 
-Matrix add_matrices(const Matrix* mat1, const Matrix* mat2) {
+void add_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out) {
     int rows = mat1->rows;
     int cols = mat1->cols;
 
-    Matrix result = create_matrix(rows, cols);
-
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
-            result.data[i][j] = mat1->data[i][j] + mat2->data[i][j];
+            out->data[i][j] = mat1->data[i][j] + mat2->data[i][j];
         }
     }
+}
+
+Matrix add_mat(const Matrix* mat1, const Matrix* mat2) {
+    int rows = mat1->rows;
+    int cols = mat1->cols;
+
+    Matrix result = create_mat(rows, cols);
+
+    add_mat_with_out(mat1, mat2, &result);
 
     return result;
 }
@@ -65,15 +72,23 @@ Matrix mult_mat(const Matrix* mat1, const Matrix* mat2) {
     int rows1 = mat1->rows;
     int cols2 = mat2->cols;
 
-    Matrix result = create_matrix(rows1, cols2);
+    Matrix result = create_mat(rows1, cols2);
 
-
+    mult_mat_with_out(mat1, mat2, &result);
 
     return result;
 }
 
+void apply_to_mat(const Matrix *mat, double (*fun)(double)) {
+    for (int i = 0; i < mat->rows; i++) {
+        for (int j = 0; j < mat->cols; j++) {
+            mat->data[i][j] = fun(mat->data[i][j]);
+        }
+    }
+}
+
 Matrix matrix_from_array(int rows, int cols, double* array) {
-    Matrix mat = create_matrix(rows, cols);
+    Matrix mat = create_mat(rows, cols);
 
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
