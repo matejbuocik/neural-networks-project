@@ -1,4 +1,5 @@
 #include "model.h"
+#include <stdbool.h>
 
 
 // Function to create an MLP
@@ -28,8 +29,8 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
     
         mlp.inner_potentials[i] = create_mat(1, cols);
         mlp.neuron_outputs[i] = create_mat(1, cols);
-        mlp.error_derivatives[i] = create_mat(1, cols);
-        mlp.activation_derivatives[i] = create_mat(1, cols);
+        mlp.error_derivatives[i] = create_mat(cols, 1);
+        mlp.activation_derivatives[i] = create_mat(cols, 1);
 
         mlp.activation_functions[i] = activation_functions[i];
         mlp.activation_funs_der[i] = activation_funs_der[i];
@@ -75,15 +76,16 @@ void initialize_weights(MLP* mlp, int seed, double max_val, double min_val) {
 }
 
 // Function to forward pass (compute neuron outputs)
-Matrix forward_pass(MLP* mlp, Matrix input) {
+Matrix forward_pass(MLP* mlp, Matrix input, bool prep_back) {
     for (int i = 0; i <= mlp->num_hidden_layers; i++) {
         // in first iteration consider input as previous layer
         Matrix* prev_layer = ((i - 1) < 0) ? &input : mlp->neuron_outputs + i - 1;
 
         mult_mat_with_out(prev_layer, mlp->weights + i, mlp->inner_potentials + i);
-        apply_to_mat_with_out(mlp->inner_potentials + i, mlp->neuron_outputs + i, mlp->activation_functions[i]);
-        // does not nned to be in a purely forward pass
-        apply_to_mat_with_out(mlp->inner_potentials + i, mlp->activation_derivatives + i, mlp->activation_funs_der[i]);
+        apply_to_mat_with_out(mlp->inner_potentials + i, mlp->neuron_outputs + i, mlp->activation_functions[i], false);
+        
+        if (prep_back)
+            apply_to_mat_with_out(mlp->inner_potentials + i, mlp->activation_derivatives + i, mlp->activation_funs_der[i], true);
     }
 
     return mlp->neuron_outputs[mlp->num_hidden_layers];
@@ -100,4 +102,4 @@ void set_derivatives_to_zero(MLP* mlp);
 void update_weights(MLP* mlp, double learning_rate);
 
 // Function to train the MLP using stochastic gradient descent
-void train(MLP* mlp, Matrix* input_data, Matrix* target_data, double learning_rate, int num_epochs, int batch_size, double (*error_function)(Matrix, Matrix));
+void train(MLP* mlp, Matrix* input_data, Matrix* target_data, double learning_rate, int num_epochs, int batch_size);

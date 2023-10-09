@@ -101,10 +101,14 @@ Matrix mult_mat(const Matrix* mat1, const Matrix* mat2) {
     return result;
 }
 
-void apply_to_mat_with_out(const Matrix *mat, const Matrix *out, double (*fun)(double)) {
+void apply_to_mat_with_out(const Matrix *mat, const Matrix *out, double (*fun)(double), bool transpose_out) {
     for (int i = 0; i < mat->rows; i++) {
         for (int j = 0; j < mat->cols; j++) {
-            out->data[i][j] = fun(mat->data[i][j]);
+            if (transpose_out) {
+                out->data[j][i] = fun(mat->data[i][j]);
+            } else {
+                out->data[i][j] = fun(mat->data[i][j]);
+            }
         }
     }
 }

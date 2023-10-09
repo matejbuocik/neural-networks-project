@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 
 // Define a matrix structure
@@ -29,6 +30,6 @@ void mult_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out
 
 Matrix mult_mat(const Matrix* mat1, const Matrix* mat2);
 
-void apply_to_mat_with_out(const Matrix *mat, const Matrix *out, double (*fun)(double));
+void apply_to_mat_with_out(const Matrix *mat, const Matrix *out, double (*fun)(double), bool transpose_out);
 
 Matrix mat_from_array(int rows, int cols, double* array);
