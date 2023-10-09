@@ -1,30 +1,32 @@
 #include "matrices.h"
 
 
+typedef double (*func_ptr)(double);
+
+
 typedef struct {
     int input_size;
     int output_size;
     int num_hidden_layers;
-    int* hidden_layer_sizes;
-    Matrix weights[]; // Array of weight matrices
-    Matrix inner_potentials[]; // Array of inner potentials
-    Matrix neuron_outputs[]; // Array of neuron outputs
-    Matrix error_derivatives[]; // Array of derivatives of the error with respect to neuron outputs
-    double** activation_derivatives; // Array of derivatives of activation functions
-    Matrix* weight_derivatives; // Array of weight derivatives
-    double (*activation_functions[])(double); // Activation function pointers
-    double (*activation_derivatives[])(double); // Activation derivative function pointers
+    Matrix* weights;
+    Matrix* inner_potentials;
+    Matrix* neuron_outputs;
+    Matrix* error_derivatives;
+    Matrix* activation_derivatives;
+    Matrix* weight_derivatives;
+    func_ptr* activation_functions;
+    func_ptr* activation_funs_der;
 } MLP;
 
 // Function to create an MLP
-MLP create_mlp(int input_size, int num_hidden_layers, int* hidden_layer_sizes,
+MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidden_layer_sizes[],
                double (*activation_functions[])(double), double (*activation_derivatives[])(double));
 
 // Function to free memory used by the MLP
 void free_mlp(MLP* mlp);
 
 // Function to initialize weights randomly
-void initialize_weights(MLP* mlp);
+void initialize_weights(MLP* mlp, int seed);
 
 // Function to forward pass (compute neuron outputs)
 void forward_pass(MLP* mlp, Matrix input);

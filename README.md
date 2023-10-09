@@ -11,7 +11,7 @@ Sunday 4. 12. 2023 23:59 (December 4th)
     algorithm.
 
 ### REQUIREMENTS
-  - Your solution must follow the project templateand must be runnable on
+  - Your solution must follow the project template and must be runnable on
     the Aura server (see details below).
   - Your solution must achieve at least 88% accuracy on the test set.
   - Your solution must finish within 10 minutes (parse inputs, train,
