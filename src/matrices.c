@@ -153,7 +153,7 @@ Matrix transpose_mat(const Matrix* input) {
     return result;
 }
 
-Matrix matrix_from_array(int rows, int cols, double* array) {
+Matrix mat_from_array(int rows, int cols, double* array) {
     Matrix mat = create_mat(rows, cols);
 
     for (int i = 0; i < rows; i++) {
