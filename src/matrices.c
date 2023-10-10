@@ -129,6 +129,18 @@ void apply_to_mat_with_out(const Matrix *mat, const Matrix *out, double (*fun)(d
     }
 }
 
+double sum_mat(Matrix *mat) {
+    double sum = 0.0;
+
+    for (int i = 0; i < mat->rows; i++) {
+        for (int j = 0; j < mat->cols; j++) {
+            sum += mat->data[i][j];
+        }
+    }
+
+    return sum;
+}
+
 Matrix transpose_mat(const Matrix* input) {
     Matrix result = create_mat(input->cols, input->rows);
 

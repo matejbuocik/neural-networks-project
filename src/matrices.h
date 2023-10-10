@@ -46,6 +46,8 @@ void mult_scal_with_out(const Matrix* mat1, double fact, const Matrix* result);
 
 void apply_to_mat_with_out(const Matrix *mat, const Matrix *out, double (*fun)(double), bool transpose_out);
 
+double sum_mat(Matrix *mat);
+
 Matrix transpose_mat(const Matrix* input);
 
 Matrix mat_from_array(int rows, int cols, double* array);
