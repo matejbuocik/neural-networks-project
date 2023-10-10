@@ -1,3 +1,6 @@
+#ifndef SIMPLE_MATRIXES
+#define SIMPLE_MATRIXES
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -11,7 +14,7 @@ typedef struct {
 } Matrix;
 
 /* Create a new Matrix*/
-Matrix create_mat(int rows, int cols);
+Matrix *create_mat(int rows, int cols);
 
 /* Free memory used by Matrix*/
 void free_mat(Matrix* mat);
@@ -26,19 +29,19 @@ double get_element(const Matrix* mat, int row, int col);
 void add_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out);
 
 /* Add two matrices, create a new one for result*/
-Matrix add_mat(const Matrix* mat1, const Matrix* mat2);
+Matrix *add_mat(const Matrix* mat1, const Matrix* mat2);
 
 /* Subtract two matrices, store result in out*/
 void sub_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out);
 
 /* Subtract two matrices, create a new one for result*/
-Matrix sub_mat(const Matrix* mat1, const Matrix* mat2);
+Matrix *sub_mat(const Matrix* mat1, const Matrix* mat2);
 
 /* Multiply two matrices, store result in out*/
 void mult_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out);
 
 /* Multiply two matrices, create a new one for result*/
-Matrix mult_mat(const Matrix* mat1, const Matrix* mat2);
+Matrix *mult_mat(const Matrix* mat1, const Matrix* mat2);
 
 void mult_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* result);
 
@@ -48,8 +51,10 @@ void apply_to_mat_with_out(const Matrix *mat, const Matrix *out, double (*fun)(d
 
 double sum_mat(Matrix *mat);
 
-Matrix transpose_mat(const Matrix* input);
+Matrix *transpose_mat(const Matrix* input);
 
-Matrix mat_from_array(int rows, int cols, double* array);
+Matrix *mat_from_array(int rows, int cols, double* array);
 
-Matrix copy_mat(Matrix* mat);
+Matrix *copy_mat(Matrix* mat);
+
+#endif

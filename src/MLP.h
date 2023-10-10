@@ -1,3 +1,6 @@
+#ifndef MULTI_LAYER_PERCEPTRON
+#define MULTI_LAYER_PERCEPTRON
+
 #include "matrices.h"
 
 
@@ -12,19 +15,19 @@ typedef struct {
     Matrix* input;                      /* TMP */
     int output_size;                    /* Size of the output vector */
     int num_hidden_layers;              /* Number of hidden layers */
-    Matrix* weights;                    /* Array of weight matrices */
-    Matrix* inner_potentials;           /* Array of inner potential vectors */
-    Matrix* neuron_outputs;             /* Array of neuron output vectors */
-    Matrix* error_derivatives;          /* Array of error function partial derivatives by neuron outputs vectors (transponed) */
-    Matrix* activation_derivatives;     /* Array of activation function derivatives vectors (transponed) */
-    Matrix* weight_derivatives;         /* Array of error function partial derivatives by weights vectors */
+    Matrix** weights;                    /* Array of weight matrices */
+    Matrix** inner_potentials;           /* Array of inner potential vectors */
+    Matrix** neuron_outputs;             /* Array of neuron output vectors */
+    Matrix** error_derivatives;          /* Array of error function partial derivatives by neuron outputs vectors (transponed) */
+    Matrix** activation_derivatives;     /* Array of activation function derivatives vectors (transponed) */
+    Matrix** weight_derivatives;         /* Array of error function partial derivatives by weights vectors */
     func_ptr* activation_functions;     /* Array of activation functions */
     func_ptr* activation_funs_der;      /* Array of derived activation functions */
 } MLP;
 
 /* Create a MLP */
 MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidden_layer_sizes[],
-               double (*activation_functions[])(double), double (*activation_derivatives[])(double));
+               func_ptr activation_functions[], func_ptr activation_funs_der[]);
 
 /* Free memory used by MLP */
 void free_mlp(MLP* mlp);
@@ -33,10 +36,10 @@ void free_mlp(MLP* mlp);
 void initialize_weights(MLP* mlp, int seed, double max_val, double min_val);
 
 /* Forward pass (compute neuron outputs) */
-Matrix forward_pass(MLP* mlp, Matrix input);
+Matrix forward_pass(MLP* mlp, Matrix *input);
 
 /* Compute derivatives during forward pass */
-void compute_derivatives(MLP* mlp, Matrix target_output);
+void compute_derivatives(MLP* mlp, Matrix *target_output);
 
 /* Set derivatives to zero */
 void set_derivatives_to_zero(MLP* mlp);
@@ -45,4 +48,8 @@ void set_derivatives_to_zero(MLP* mlp);
 void update_weights(MLP* mlp, double learning_rate);
 
 /* Train the MLP using stochastic gradient descent */
-void train(MLP* mlp, int num_samples, Matrix input_data[], Matrix target_data[], double learning_rate, int num_batches, int batch_size);
+void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[], double learning_rate, int num_batches, int batch_size);
+
+double test(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[], double (*metric_fun)(Matrix*, Matrix*));
+
+#endif

@@ -2,14 +2,14 @@
 #include <assert.h>
 
 
-Matrix create_mat(int rows, int cols) {
-    Matrix mat;
-    mat.rows = rows;
-    mat.cols = cols;
+Matrix *create_mat(int rows, int cols) {
+    Matrix *mat = (Matrix *)malloc(sizeof(Matrix));
+    mat->rows = rows;
+    mat->cols = cols;
 
-    mat.data = (double**)malloc(rows * sizeof(double*));
+    mat->data = (double**)malloc(rows * sizeof(double*));
     for (int i = 0; i < rows; i++) {
-        mat.data[i] = (double*)malloc(cols * sizeof(double));
+        mat->data[i] = (double*)malloc(cols * sizeof(double));
     }
 
     return mat;
@@ -20,6 +20,7 @@ void free_mat(Matrix* mat) {
         free(mat->data[i]);
     }
     free(mat->data);
+    free(mat);
 }
 
 void set_element(Matrix* mat, int row, int col, double value) {
@@ -41,13 +42,13 @@ void add_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out)
     }
 }
 
-Matrix add_mat(const Matrix* mat1, const Matrix* mat2) {
+Matrix *add_mat(const Matrix* mat1, const Matrix* mat2) {
     int rows = mat1->rows;
     int cols = mat1->cols;
 
-    Matrix result = create_mat(rows, cols);
+    Matrix *result = create_mat(rows, cols);
 
-    add_mat_with_out(mat1, mat2, &result);
+    add_mat_with_out(mat1, mat2, result);
 
     return result;
 }
@@ -63,13 +64,13 @@ void sub_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out)
     }
 }
 
-Matrix sub_mat(const Matrix* mat1, const Matrix* mat2) {
+Matrix *sub_mat(const Matrix* mat1, const Matrix* mat2) {
     int rows = mat1->rows;
     int cols = mat1->cols;
 
-    Matrix result = create_mat(rows, cols);
+    Matrix *result = create_mat(rows, cols);
 
-    sub_mat_with_out(mat1, mat2, &result);
+    sub_mat_with_out(mat1, mat2, result);
 
     return result;
 }
@@ -90,13 +91,13 @@ void mult_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out
     }
 }
 
-Matrix mult_mat(const Matrix* mat1, const Matrix* mat2) {
+Matrix *mult_mat(const Matrix* mat1, const Matrix* mat2) {
     int rows1 = mat1->rows;
     int cols2 = mat2->cols;
 
-    Matrix result = create_mat(rows1, cols2);
+    Matrix *result = create_mat(rows1, cols2);
 
-    mult_mat_with_out(mat1, mat2, &result);
+    mult_mat_with_out(mat1, mat2, result);
 
     return result;
 }
@@ -141,36 +142,36 @@ double sum_mat(Matrix *mat) {
     return sum;
 }
 
-Matrix transpose_mat(const Matrix* input) {
-    Matrix result = create_mat(input->cols, input->rows);
+Matrix *transpose_mat(const Matrix* input) {
+    Matrix *result = create_mat(input->cols, input->rows);
 
     for (int i = 0; i < input->rows; i++) {
         for (int j = 0; j < input->cols; j++) {
-            result.data[j][i] = input->data[i][j];
+            result->data[j][i] = input->data[i][j];
         }
     }
 
     return result;
 }
 
-Matrix mat_from_array(int rows, int cols, double* array) {
-    Matrix mat = create_mat(rows, cols);
+Matrix *mat_from_array(int rows, int cols, double* array) {
+    Matrix *mat = create_mat(rows, cols);
 
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
-            mat.data[i][j] = array[i * cols + j];
+            mat->data[i][j] = array[i * cols + j];
         }
     }
 
     return mat;
 }
 
-Matrix copy_mat(Matrix* mat) {
-    Matrix result = create_mat(mat->rows, mat->cols);
+Matrix *copy_mat(Matrix* mat) {
+    Matrix *result = create_mat(mat->rows, mat->cols);
 
     for (int i = 0; i < mat->rows; i++) {
         for (int j = 0; j < mat->cols; j++) {
-            result.data[i][j] = mat->data[i][j];
+            result->data[i][j] = mat->data[i][j];
         }
     }
 
