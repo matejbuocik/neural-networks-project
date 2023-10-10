@@ -1,5 +1,7 @@
-#include "model.h"
+#include "MLP.h"
 #include <stdbool.h>
+#include <time.h>
+#include <math.h>
 
 
 // Function to create an MLP
@@ -76,7 +78,7 @@ void initialize_weights(MLP* mlp, int seed, double max_val, double min_val) {
 }
 
 // Function to forward pass (compute neuron outputs)
-Matrix forward_pass(MLP* mlp, Matrix input, bool prep_back) {
+Matrix forward_pass(MLP* mlp, Matrix input) {
     Matrix input_copy = copy_mat(&input);
     mlp->input = &input_copy;
 
@@ -88,12 +90,6 @@ Matrix forward_pass(MLP* mlp, Matrix input, bool prep_back) {
         apply_to_mat_with_out(mlp->inner_potentials + i,
                               mlp->neuron_outputs + i,
                               mlp->activation_functions[i], false);
-        
-        // can be moved to compute_derivatives or removed
-        if (prep_back)
-            apply_to_mat_with_out(mlp->inner_potentials + i,
-                                  mlp->activation_derivatives + i,
-                                  mlp->activation_funs_der[i], true);
     }
 
     return mlp->neuron_outputs[mlp->num_hidden_layers];
@@ -101,6 +97,12 @@ Matrix forward_pass(MLP* mlp, Matrix input, bool prep_back) {
 
 // Function to compute derivatives during backward pass
 void compute_derivatives(MLP* mlp, Matrix target_output) {
+    for (int i = 0; i <= mlp->num_hidden_layers; i++) {
+        apply_to_mat_with_out(mlp->inner_potentials + i,
+                                mlp->activation_derivatives + i,
+                                mlp->activation_funs_der[i], true);
+    }
+
     Matrix deriv_last = sub_mat(mlp->neuron_outputs + mlp->num_hidden_layers, &target_output);
     Matrix deriv_last_T = transpose_mat(&deriv_last);
     free_mat(&deriv_last);
@@ -141,7 +143,46 @@ void update_weights(MLP* mlp, double learning_rate) {
     set_derivatives_to_zero(mlp);
 }
 
+int _get_random_int(int min, int max) {
+    srand(time(NULL));
+
+    int range = max - min + 1;  // include min and max
+    int random_int = rand() % range + min;
+
+    return random_int;
+}
+
 // Function to train the MLP using stochastic gradient descent
-void train(MLP* mlp, Matrix* input_data, Matrix* target_data, double learning_rate, int num_batches, int batch_size) {
-    // create and train model
+void train(MLP* mlp, int num_samples, Matrix input_data[], Matrix target_data[], double learning_rate, int num_batches, int batch_size) {
+    for (int batch = 0; batch < num_batches; batch++) {
+        for (int i = 0; i < batch_size; i++) {
+            int data_i = _get_random_int(0, num_samples - 1);
+
+            forward_pass(mlp, input_data[data_i]);
+            compute_derivatives(mlp, target_data[data_i]);
+        }
+
+        update_weights(mlp, learning_rate);
+    }
+}
+
+double _mse(Matrix* mat1, Matrix* mat2) {
+    Matrix sub = sub_mat(mat1, mat2);
+    apply_to_mat_with_out(&sub, &sub, fabs, false);
+
+    double sum = sum_mat(&sub);
+    free_mat(&sub);
+
+    return sum;
+}
+
+double test(MLP* mlp, int num_samples, Matrix input_data[], Matrix target_data[], double (*metric_fun)(Matrix*, Matrix*)) {
+    double res = 0.0;
+
+    for (int i = 0; i < num_samples; i++) {
+        Matrix computed_out = forward_pass(mlp, input_data[i]);
+        res += metric_fun(&computed_out, target_data + i);
+    }
+
+    return res;
 }

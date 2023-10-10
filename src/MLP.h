@@ -33,7 +33,7 @@ void free_mlp(MLP* mlp);
 void initialize_weights(MLP* mlp, int seed, double max_val, double min_val);
 
 /* Forward pass (compute neuron outputs) */
-Matrix forward_pass(MLP* mlp, Matrix input, bool prep_back);
+Matrix forward_pass(MLP* mlp, Matrix input);
 
 /* Compute derivatives during forward pass */
 void compute_derivatives(MLP* mlp, Matrix target_output);
@@ -45,4 +45,4 @@ void set_derivatives_to_zero(MLP* mlp);
 void update_weights(MLP* mlp, double learning_rate);
 
 /* Train the MLP using stochastic gradient descent */
-void train(MLP* mlp, Matrix* input_data, Matrix* target_data, double learning_rate, int num_epochs, int batch_size);
+void train(MLP* mlp, int num_samples, Matrix input_data[], Matrix target_data[], double learning_rate, int num_batches, int batch_size);
