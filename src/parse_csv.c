@@ -51,8 +51,7 @@ int parse_csv_file(const char* filename, Matrix ***ptr_to_mat_array) {
     // Go through the file and parse all the values
     int row = 0;
     int col = 0;
-    char buffer[256]; // Assuming a maximum token length of 256 characters
-    memset(buffer, 0, sizeof(buffer)); // Clear the buffer
+    char buffer[256] = {0}; // Assuming a maximum token length of 256 characters
 
     while ((c = fgetc(file)) != EOF) {
         if (c == ',' || c == '\n') {
