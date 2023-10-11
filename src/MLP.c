@@ -102,12 +102,17 @@ Matrix forward_pass(MLP* mlp, Matrix *input) {
 
 // Function to compute derivatives during backward pass
 void compute_derivatives(MLP* mlp, Matrix *target_output) {
+    // apply the derivative of activation function to inner potentials (maybe does not need to be stored)
     for (int i = 0; i <= mlp->num_hidden_layers; i++) {
         apply_to_mat_with_out(mlp->inner_potentials[i],
                                 mlp->activation_derivatives[i],
                                 mlp->activation_funs_der[i], true);
     }
 
+    // compute derivatives of the error function with respect to the neuron outputs of the last layer
+    // the result is transposed, because of the way the derivatives with regards to the neuron outputs
+    // in other layers are computed (multiplication with the same weight matrices as in forward pass
+    // just from the other side)
     Matrix *deriv_last = sub_mat(mlp->neuron_outputs[mlp->num_hidden_layers], target_output);
     Matrix *deriv_last_T = transpose_mat(deriv_last);
     free_mat(deriv_last);
@@ -116,12 +121,13 @@ void compute_derivatives(MLP* mlp, Matrix *target_output) {
                   mlp->error_derivatives[mlp->num_hidden_layers]);
     
     free_mat(deriv_last_T);
-
+    // computing derivatives of the error function with respect to all the other neuron outputs
     for (int i = mlp->num_hidden_layers - 1; i >= 0; i--) {
         mult_mat_with_out(mlp->weights[i + 1], mlp->error_derivatives[i + 1], mlp->error_derivatives[i]);
         mult_with_out(mlp->error_derivatives[i], mlp->activation_derivatives[i], mlp->error_derivatives[i]);
     }
 
+    // computing derivatives of the error function with respect to all the weights
     for (int k = 0; k <= mlp->num_hidden_layers; k++) {
         for (int i = 0; i < mlp->weight_derivatives[k]->rows; i++) {
             for (int j = 0; j < mlp->weight_derivatives[k]->cols; j++) {
