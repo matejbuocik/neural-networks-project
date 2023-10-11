@@ -192,7 +192,7 @@ double test(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data
         Matrix computed_out = forward_pass(mlp, input_data[i]);
         res += metric_fun(&computed_out, target_data[i]);
 
-        printf("%f, %f\n", get_element(&computed_out, 0, 0), get_element(input_data[i], 0, 0));
+        printf("%f, %f\n", get_element(&computed_out, 0, 0), get_element(target_data[i], 0, 0));
     }
 
     return res;
