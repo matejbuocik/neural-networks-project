@@ -19,7 +19,7 @@ int main() {
     //print_matrices(inputs_array, in_n);
     //print_matrices(outputs_array, in_n);
 
-    int hidden_layer_sizes[1] = {8};
+    int hidden_layer_sizes[1] = {12};
     func_ptr activation_funs[2] = {&sigmoid, &sigmoid};
     func_ptr activation_funs_der[2] = {&sigmoid_der, &sigmoid_der};
 
@@ -33,6 +33,9 @@ int main() {
     double test_res = test(&mlp, in_n, inputs_array, outputs_array, NULL);
 
     printf("%f\n", test_res);
+
+    // free model
+    free_mlp(&mlp);
 
     // free input and output arrays
     for (int i = 0; i < in_n; i++) {
