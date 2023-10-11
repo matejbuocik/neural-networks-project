@@ -145,7 +145,7 @@ void set_derivatives_to_zero(MLP* mlp) {
 void update_weights(MLP* mlp, double learning_rate) {
     for (int k = 0; k <= mlp->num_hidden_layers; k++) {
         mult_scal_with_out(mlp->weight_derivatives[k], learning_rate, mlp->weight_derivatives[k]);
-        add_mat_with_out(mlp->weight_derivatives[k], mlp->weights[k], mlp->weights[k]);
+        sub_mat_with_out(mlp->weights[k], mlp->weight_derivatives[k], mlp->weights[k]);
     }
 
     set_derivatives_to_zero(mlp);
