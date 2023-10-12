@@ -15,12 +15,12 @@ typedef struct {
     Matrix* input;                      /* TMP */
     int output_size;                    /* Size of the output vector */
     int num_hidden_layers;              /* Number of hidden layers */
-    Matrix** weights;                    /* Array of weight matrices */
-    Matrix** inner_potentials;           /* Array of inner potential vectors */
-    Matrix** neuron_outputs;             /* Array of neuron output vectors */
-    Matrix** error_derivatives;          /* Array of error function partial derivatives by neuron outputs vectors (transponed) */
-    Matrix** activation_derivatives;     /* Array of activation function derivatives vectors (transponed) */
-    Matrix** weight_derivatives;         /* Array of error function partial derivatives by weights vectors */
+    Matrix** weights;                   /* Array of weight matrices */
+    Matrix** inner_potentials;          /* Array of inner potential vectors */
+    Matrix** neuron_outputs;            /* Array of neuron output vectors */
+    Matrix** error_derivatives;         /* Array of error function partial derivatives by neuron outputs vectors (transponed) */
+    Matrix** activation_derivatives;    /* Array of activation function derivatives vectors (transponed) */
+    Matrix** weight_derivatives;        /* Array of error function partial derivatives by weights vectors */
     func_ptr* activation_functions;     /* Array of activation functions */
     func_ptr* activation_funs_der;      /* Array of derived activation functions */
 } MLP;
@@ -50,6 +50,7 @@ void update_weights(MLP* mlp, double learning_rate);
 /* Train the MLP using stochastic gradient descent */
 void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[], double learning_rate, int num_batches, int batch_size);
 
+/* Test the model on `input_data` using `target_data` with `metric_fun` (if NULL, use mean square error)*/
 double test(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[], double (*metric_fun)(Matrix*, Matrix*));
 
 #endif

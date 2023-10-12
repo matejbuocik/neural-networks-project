@@ -4,7 +4,6 @@
 #include <math.h>
 
 
-// Function to create an MLP
 MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidden_layer_sizes[],
                func_ptr activation_functions[], func_ptr activation_funs_der[]) {
     MLP mlp;
@@ -42,7 +41,6 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
     return mlp;
 }
 
-// Function to free memory used by the MLP
 void free_mlp(MLP* mlp) {
     for (int i = 0; i <= mlp->num_hidden_layers; i++) {
         free_mat(mlp->weights[i]);
@@ -68,7 +66,6 @@ void free_mlp(MLP* mlp) {
     }
 }
 
-// Function to initialize weights randomly
 void initialize_weights(MLP* mlp, int seed, double max_val, double min_val) {
     srand(seed);
 
@@ -82,7 +79,6 @@ void initialize_weights(MLP* mlp, int seed, double max_val, double min_val) {
     }
 }
 
-// Function to forward pass (compute neuron outputs)
 Matrix forward_pass(MLP* mlp, Matrix *input) {
     Matrix *input_copy = copy_mat(input);
     mlp->input = input_copy;
@@ -100,7 +96,6 @@ Matrix forward_pass(MLP* mlp, Matrix *input) {
     return *(mlp->neuron_outputs[mlp->num_hidden_layers]);
 }
 
-// Function to compute derivatives during backward pass
 void compute_derivatives(MLP* mlp, Matrix *target_output) {
     // apply the derivative of activation function to inner potentials (maybe does not need to be stored)
     for (int i = 0; i <= mlp->num_hidden_layers; i++) {
@@ -119,7 +114,7 @@ void compute_derivatives(MLP* mlp, Matrix *target_output) {
 
     mult_with_out(deriv_last_T, mlp->activation_derivatives[mlp->num_hidden_layers],
                   mlp->error_derivatives[mlp->num_hidden_layers]);
-    
+
     free_mat(deriv_last_T);
     // computing derivatives of the error function with respect to all the other neuron outputs
     for (int i = mlp->num_hidden_layers - 1; i >= 0; i--) {
@@ -147,7 +142,6 @@ void set_derivatives_to_zero(MLP* mlp) {
     }
 }
 
-// Function to update weights using stochastic gradient descent
 void update_weights(MLP* mlp, double learning_rate) {
     for (int k = 0; k <= mlp->num_hidden_layers; k++) {
         mult_scal_with_out(mlp->weight_derivatives[k], learning_rate, mlp->weight_derivatives[k]);
@@ -164,7 +158,6 @@ int _get_random_int(int min, int max) {
     return random_int;
 }
 
-// Function to train the MLP using stochastic gradient descent
 void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[], double learning_rate, int num_batches, int batch_size) {
     for (int batch = 0; batch < num_batches; batch++) {
         for (int i = 0; i < batch_size; i++) {
