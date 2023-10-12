@@ -9,8 +9,8 @@ extern char *optarg;
 
 void print_help() {
     printf("MLP\n");
-    printf("   -v --vectors\t\tInput vectors file (default ../data/xor_vectors.csv)\n");
-    printf("   -l --labels\t\tOutput labels file (default ../data/xor_labels.csv)\n");
+    printf("   -v --vectors\t\tInput vectors file (default data/xor_vectors.csv)\n");
+    printf("   -l --labels\t\tOutput labels file (default data/xor_labels.csv)\n");
     printf("   -r --rate\t\tLearning rate (default 1.0)\n");
     printf("   -n --num-batches\tNumber of batches (default 1000000)\n");
     printf("   -s --batch-size\tSize of a batch (default 1)\n");
@@ -19,8 +19,8 @@ void print_help() {
 
 int main(int argc, char *argv[]) {
     // Set default values
-    char *path_inputs = "../data/xor_vectors.csv";
-    char *path_outputs = "../data/xor_labels.csv";
+    char *path_inputs = "data/xor_vectors.csv";
+    char *path_outputs = "data/xor_labels.csv";
     double learning_rate = 1;
     int num_batches = 1000000;
     int batch_size = 1;
@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
     //print_matrices(inputs_array, in_n);
     //print_matrices(outputs_array, in_n);
 
-    int hidden_layer_sizes[1] = {12};
+    int hidden_layer_sizes[1] = {4};
     func_ptr activation_funs[2] = {&sigmoid, &sigmoid};
     func_ptr activation_funs_der[2] = {&sigmoid_der, &sigmoid_der};
 
