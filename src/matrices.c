@@ -8,8 +8,8 @@ Matrix *create_mat(int rows, int cols) {
     mat->cols = cols;
 
     mat->data = (double**)malloc(rows * sizeof(double*));
-    for (int i = 0; i < rows; i++) {
-        mat->data[i] = (double*)malloc(cols * sizeof(double));
+    for (int row = 0; row < rows; row++) {
+        mat->data[row] = (double*)malloc(cols * sizeof(double));
     }
 
     return mat;
@@ -31,29 +31,60 @@ double get_element(const Matrix* mat, int row, int col) {
     return mat->data[row][col];
 }
 
-void add_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out) {
-    int rows = mat1->rows;
-    int cols = mat1->cols;
+void multiply_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out) {
+    int rows1 = mat1->rows;
+    int cols1 = mat1->cols;
+    int cols2 = mat2->cols;
 
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            out->data[i][j] = mat1->data[i][j] + mat2->data[i][j];
+    int offset = 0;
+    if (mat1->rows != mat2->rows) {
+        // Skip biases row, used during backpropagation
+        offset = 1;
+    }
+
+    for (int i = 0; i < rows1 - offset; i++) {
+        for (int j = 0; j < cols2; j++) {
+            double sum = 0.0;
+            for (int k = 0; k < cols1; k++) {
+                sum += mat1->data[i + offset][k] * mat2->data[k][j];
+            }
+            out->data[i][j] = sum;
         }
     }
 }
 
-Matrix *add_mat(const Matrix* mat1, const Matrix* mat2) {
-    int rows = mat1->rows;
-    int cols = mat1->cols;
+void apply_func_mat(const Matrix *mat, const Matrix *out, double (*fun)(double), bool transpose_out) {
+    if (transpose_out) {
+        for (int i = 0; i < mat->rows; i++) {
+            for (int j = 0; j < mat->cols; j++) {
+                out->data[j][i] = fun(mat->data[i][j]);
+            }
+        }
+    } else {
+        int offset = 0;
+        if (mat->cols + 1 == out->cols) {
+            // applying activation function to get neuron output in forward pass
+            offset = 1;
+            out->data[0][0] = 1;
+        }
 
-    Matrix *result = create_mat(rows, cols);
-
-    add_mat_with_out(mat1, mat2, result);
-
-    return result;
+        for (int i = 0; i < mat->rows; i++) {
+            for (int j = 0; j < mat->cols; j++) {
+                out->data[i][j + offset] = fun(mat->data[i][j]);
+            }
+        }
+    }
 }
 
-void sub_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out) {
+void multiply_scalar_mat(const Matrix* mat1, double fact, const Matrix* result) {
+    for (int i = 0; i < mat1->rows; i++) {
+        for (int j = 0; j < mat1->cols; j++) {
+            result->data[i][j] = mat1->data[i][j] * fact;
+        }
+    }
+}
+
+void subtract_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out) {
     int rows = mat1->rows;
     int cols = mat1->cols;
 
@@ -64,45 +95,7 @@ void sub_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out)
     }
 }
 
-Matrix *sub_mat(const Matrix* mat1, const Matrix* mat2) {
-    int rows = mat1->rows;
-    int cols = mat1->cols;
-
-    Matrix *result = create_mat(rows, cols);
-
-    sub_mat_with_out(mat1, mat2, result);
-
-    return result;
-}
-
-void mult_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out) {
-    int rows1 = mat1->rows;
-    int cols1 = mat1->cols;
-    int cols2 = mat2->cols;
-
-    for (int i = 0; i < rows1; i++) {
-        for (int j = 0; j < cols2; j++) {
-            double sum = 0.0;
-            for (int k = 0; k < cols1; k++) {
-                sum += mat1->data[i][k] * mat2->data[k][j];
-            }
-            out->data[i][j] = sum;
-        }
-    }
-}
-
-Matrix *mult_mat(const Matrix* mat1, const Matrix* mat2) {
-    int rows1 = mat1->rows;
-    int cols2 = mat2->cols;
-
-    Matrix *result = create_mat(rows1, cols2);
-
-    mult_mat_with_out(mat1, mat2, result);
-
-    return result;
-}
-
-void mult_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* result) {
+void elem_multiply_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* result) {
     for (int i = 0; i < mat1->rows; i++) {
         for (int j = 0; j < mat1->cols; j++) {
             result->data[i][j] = mat1->data[i][j] * mat2->data[i][j];
@@ -110,24 +103,15 @@ void mult_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* result)
     }
 }
 
-void mult_scal_with_out(const Matrix* mat1, double fact, const Matrix* result) {
-    for (int i = 0; i < mat1->rows; i++) {
-        for (int j = 0; j < mat1->cols; j++) {
-            result->data[i][j] = mat1->data[i][j] * fact;
-        }
-    }
-}
+Matrix *sub_mat(const Matrix* mat1, const Matrix* mat2) {
+    int rows = mat1->rows;
+    int cols = mat1->cols;
 
-void apply_to_mat_with_out(const Matrix *mat, const Matrix *out, double (*fun)(double), bool transpose_out) {
-    for (int i = 0; i < mat->rows; i++) {
-        for (int j = 0; j < mat->cols; j++) {
-            if (transpose_out) {
-                out->data[j][i] = fun(mat->data[i][j]);
-            } else {
-                out->data[i][j] = fun(mat->data[i][j]);
-            }
-        }
-    }
+    Matrix *result = create_mat(rows, cols);
+
+    subtract_mat(mat1, mat2, result);
+
+    return result;
 }
 
 double sum_mat(Matrix *mat) {

@@ -25,32 +25,23 @@ void set_element(Matrix* mat, int row, int col, double value);
 /* Get element at a given position */
 double get_element(const Matrix* mat, int row, int col);
 
-/* Add two matrices, store result in `out`*/
-void add_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out);
+/* Multiply two matrices, store result in `out`*/
+void multiply_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out);
 
-/* Add two matrices, create a new one for result*/
-Matrix *add_mat(const Matrix* mat1, const Matrix* mat2);
+/* Apply `fun` to every element of the matrix, store result in `out`*/
+void apply_func_mat(const Matrix *mat, const Matrix *out, double (*fun)(double), bool transpose_out);
+
+/* Multiply matrix by scalar, store result in `out` */
+void multiply_scalar_mat(const Matrix* mat, double fact, const Matrix* out);
 
 /* Subtract two matrices, store result in `out`*/
-void sub_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out);
+void subtract_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out);
+
+/* Multiply two matrices, only by elements, store result in `result` */
+void elem_multiply_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* result);
 
 /* Subtract two matrices, create a new one for result*/
 Matrix *sub_mat(const Matrix* mat1, const Matrix* mat2);
-
-/* Multiply two matrices, store result in `out`*/
-void mult_mat_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* out);
-
-/* Multiply two matrices, create a new one for result*/
-Matrix *mult_mat(const Matrix* mat1, const Matrix* mat2);
-
-/* Multiply two matrices, only by elements, store result in `result` */
-void mult_with_out(const Matrix* mat1, const Matrix* mat2, const Matrix* result);
-
-/* Multiply matrix by scalar, store result in `result` */
-void mult_scal_with_out(const Matrix* mat1, double fact, const Matrix* result);
-
-/* Apply `fun` to every element of the matrix, store result in `out`*/
-void apply_to_mat_with_out(const Matrix *mat, const Matrix *out, double (*fun)(double), bool transpose_out);
 
 /* Sum of all elements of the matrix */
 double sum_mat(Matrix *mat);

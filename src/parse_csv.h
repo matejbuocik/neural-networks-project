@@ -5,7 +5,7 @@
 #include "matrices.h"
 
 
-int parse_csv_file(const char* filename, Matrix ***ptr_to_mat_array);
+int parse_csv_file(const char* filename, Matrix ***ptr_to_mat_array, int is_input);
 
 void print_matrices(Matrix **matrix_array, int num_matrices);
 

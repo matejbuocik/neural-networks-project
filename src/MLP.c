@@ -8,34 +8,38 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
                func_ptr activation_functions[], func_ptr activation_funs_der[]) {
     MLP mlp;
 
-    mlp.input_size = input_size;
-    mlp.input = NULL;
     mlp.num_hidden_layers = num_hidden_layers;
+    mlp.activation_functions = activation_functions;
+    mlp.activation_funs_der = activation_funs_der;
+
     // allocate memory for arrays
-    mlp.weights = (Matrix**)malloc((num_hidden_layers + 1) * sizeof(Matrix*));
-    mlp.inner_potentials = (Matrix**)malloc((num_hidden_layers + 1) * sizeof(Matrix*));
-    mlp.neuron_outputs = (Matrix**)malloc((num_hidden_layers + 1) * sizeof(Matrix*));
-    mlp.error_derivatives = (Matrix**)malloc((num_hidden_layers + 1) * sizeof(Matrix*));
-    mlp.activation_derivatives = (Matrix**)malloc((num_hidden_layers + 1) * sizeof(Matrix*));
-    mlp.weight_derivatives = (Matrix**)malloc((num_hidden_layers + 1) * sizeof(Matrix*));
-    mlp.activation_functions = (func_ptr*)malloc((num_hidden_layers + 1) * sizeof(func_ptr));
-    mlp.activation_funs_der = (func_ptr*)malloc((num_hidden_layers + 1) * sizeof(func_ptr));
+    mlp.weights                 = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
+    mlp.inner_potentials        = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
+    mlp.neuron_outputs          = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
+
+    mlp.error_derivatives       = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
+    mlp.activation_derivatives  = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
+    mlp.weight_derivatives      = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
 
     // initialize allocated arrays
+    int plus_one_output_col = 1;
     for (int i = 0; i <= num_hidden_layers; i++) {
-        int rows = ((i - 1) < 0) ? input_size : hidden_layer_sizes[i - 1];
-        int cols = (i >= num_hidden_layers) ? output_size : hidden_layer_sizes[i];
+        int rows = (i == 0) ? input_size : hidden_layer_sizes[i - 1];  // neurons in previous layer
+        int cols = hidden_layer_sizes[i];  // neurons in the next layer
+        if (i == num_hidden_layers) {
+            cols = output_size;
+            plus_one_output_col = 0;  // Do not add 1 to the output vector
+        }
+
+        rows += 1;  // Add 1 for bias
 
         mlp.weights[i] = create_mat(rows, cols);
         mlp.weight_derivatives[i] = create_mat(rows, cols);
 
         mlp.inner_potentials[i] = create_mat(1, cols);
-        mlp.neuron_outputs[i] = create_mat(1, cols);
+        mlp.neuron_outputs[i] = create_mat(1, cols + plus_one_output_col);  // First one will always be one (input for bias)
         mlp.error_derivatives[i] = create_mat(cols, 1);
         mlp.activation_derivatives[i] = create_mat(cols, 1);
-
-        mlp.activation_functions[i] = activation_functions[i];
-        mlp.activation_funs_der[i] = activation_funs_der[i];
     }
 
     return mlp;
@@ -55,18 +59,15 @@ void free_mlp(MLP* mlp) {
     free(mlp->weights);
     free(mlp->inner_potentials);
     free(mlp->neuron_outputs);
+
     free(mlp->error_derivatives);
     free(mlp->activation_derivatives);
     free(mlp->weight_derivatives);
-    free(mlp->activation_functions);
-    free(mlp->activation_funs_der);
-
-    if (mlp->input != NULL) {
-        free_mat(mlp->input);
-    }
 }
 
 void initialize_weights(MLP* mlp, int seed, double max_val, double min_val) {
+    // TODO smart initialization (normal He for ReLU, normal Glorot for softmax)
+    // TODO normal distribution function
     srand(seed);
 
     for (int i = 0; i <= mlp->num_hidden_layers; i++) {
@@ -79,47 +80,45 @@ void initialize_weights(MLP* mlp, int seed, double max_val, double min_val) {
     }
 }
 
-Matrix forward_pass(MLP* mlp, Matrix *input) {
-    Matrix *input_copy = copy_mat(input);
-    mlp->input = input_copy;
+Matrix *forward_pass(MLP *mlp, Matrix *input) {
+    Matrix *prev_layer = input;
 
     for (int i = 0; i <= mlp->num_hidden_layers; i++) {
-        // in first iteration consider input as previous layer
-        Matrix *prev_layer = ((i - 1) < 0) ? mlp->input : mlp->neuron_outputs[i - 1];
+        multiply_mat(prev_layer, mlp->weights[i], mlp->inner_potentials[i]);
+        apply_func_mat(mlp->inner_potentials[i],
+                       mlp->neuron_outputs[i],
+                       mlp->activation_functions[i], false);
 
-        mult_mat_with_out(prev_layer, mlp->weights[i], mlp->inner_potentials[i]);
-        apply_to_mat_with_out(mlp->inner_potentials[i],
-                              mlp->neuron_outputs[i],
-                              mlp->activation_functions[i], false);
+        prev_layer = mlp->neuron_outputs[i];
     }
 
-    return *(mlp->neuron_outputs[mlp->num_hidden_layers]);
+    return mlp->neuron_outputs[mlp->num_hidden_layers];
 }
 
-void compute_derivatives(MLP* mlp, Matrix *target_output) {
-    // apply the derivative of activation function to inner potentials (maybe does not need to be stored)
-    for (int i = 0; i <= mlp->num_hidden_layers; i++) {
-        apply_to_mat_with_out(mlp->inner_potentials[i],
-                                mlp->activation_derivatives[i],
-                                mlp->activation_funs_der[i], true);
-    }
+void backpropagate(MLP *mlp, Matrix *input, Matrix *target_output) {
+    // TODO special case for output layer softmax
 
     // compute derivatives of the error function with respect to the neuron outputs of the last layer
     // the result is transposed, because of the way the derivatives with regards to the neuron outputs
     // in other layers are computed (multiplication with the same weight matrices as in forward pass
     // just from the other side)
+    // TODO do not allocate new matrices, everything needs to be there in the beginning
     Matrix *deriv_last = sub_mat(mlp->neuron_outputs[mlp->num_hidden_layers], target_output);
     Matrix *deriv_last_T = transpose_mat(deriv_last);
     free_mat(deriv_last);
 
-    mult_with_out(deriv_last_T, mlp->activation_derivatives[mlp->num_hidden_layers],
-                  mlp->error_derivatives[mlp->num_hidden_layers]);
+    apply_func_mat(mlp->inner_potentials[mlp->num_hidden_layers], mlp->activation_derivatives[mlp->num_hidden_layers],
+                   mlp->activation_funs_der[mlp->num_hidden_layers], true);
+    elem_multiply_mat(deriv_last_T, mlp->activation_derivatives[mlp->num_hidden_layers],
+                      mlp->error_derivatives[mlp->num_hidden_layers]);
 
     free_mat(deriv_last_T);
     // computing derivatives of the error function with respect to all the other neuron outputs
     for (int i = mlp->num_hidden_layers - 1; i >= 0; i--) {
-        mult_mat_with_out(mlp->weights[i + 1], mlp->error_derivatives[i + 1], mlp->error_derivatives[i]);
-        mult_with_out(mlp->error_derivatives[i], mlp->activation_derivatives[i], mlp->error_derivatives[i]);
+        multiply_mat(mlp->weights[i + 1], mlp->error_derivatives[i + 1], mlp->error_derivatives[i]);
+        apply_func_mat(mlp->inner_potentials[i], mlp->activation_derivatives[i],
+                       mlp->activation_funs_der[i], true);
+        elem_multiply_mat(mlp->error_derivatives[i], mlp->activation_derivatives[i], mlp->error_derivatives[i]);
     }
 
     // computing derivatives of the error function with respect to all the weights
@@ -128,7 +127,7 @@ void compute_derivatives(MLP* mlp, Matrix *target_output) {
             for (int j = 0; j < mlp->weight_derivatives[k]->cols; j++) {
                 double grad = get_element(mlp->weight_derivatives[k], i, j);
                 // compute derivative
-                Matrix* neuron_vals = ((k - 1) < 0) ? mlp->input : mlp->neuron_outputs[k - 1];
+                Matrix* neuron_vals = (k == 0) ? input : mlp->neuron_outputs[k - 1];
                 grad += get_element(mlp->error_derivatives[k], j, 0) * get_element(neuron_vals, 0, i);
                 set_element(mlp->weight_derivatives[k], i, j, grad);
             }
@@ -136,16 +135,17 @@ void compute_derivatives(MLP* mlp, Matrix *target_output) {
     }
 }
 
-void set_derivatives_to_zero(MLP* mlp) {
+void set_derivatives_to_zero(MLP *mlp) {
     for (int k = 0; k <= mlp->num_hidden_layers; k++) {
-        mult_scal_with_out(mlp->weight_derivatives[k], 0.0, mlp->weight_derivatives[k]);
+        multiply_scalar_mat(mlp->weight_derivatives[k], 0.0, mlp->weight_derivatives[k]);
     }
 }
 
-void update_weights(MLP* mlp, double learning_rate) {
+void gradient_descent(MLP *mlp, double learning_rate) {
+    // TODO use better techniques (adaptive learning rate, momentum, ...)
     for (int k = 0; k <= mlp->num_hidden_layers; k++) {
-        mult_scal_with_out(mlp->weight_derivatives[k], learning_rate, mlp->weight_derivatives[k]);
-        sub_mat_with_out(mlp->weights[k], mlp->weight_derivatives[k], mlp->weights[k]);
+        multiply_scalar_mat(mlp->weight_derivatives[k], learning_rate, mlp->weight_derivatives[k]);
+        subtract_mat(mlp->weights[k], mlp->weight_derivatives[k], mlp->weights[k]);
     }
 
     set_derivatives_to_zero(mlp);
@@ -153,27 +153,30 @@ void update_weights(MLP* mlp, double learning_rate) {
 
 int _get_random_int(int min, int max) {
     int range = max - min + 1;  // include min and max
-    int random_int = rand() % range + min;
+    int random_int = min + rand() % range;
 
     return random_int;
 }
 
 void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[], double learning_rate, int num_batches, int batch_size) {
+    // TODO use classification
+    // input_data[0] must be 1
     for (int batch = 0; batch < num_batches; batch++) {
         for (int i = 0; i < batch_size; i++) {
+            // TODO spustit na batch_size procesoroch naraz
             int data_i = _get_random_int(0, num_samples - 1);
 
             forward_pass(mlp, input_data[data_i]);
-            compute_derivatives(mlp, target_data[data_i]);
+            backpropagate(mlp, input_data[data_i], target_data[data_i]);
         }
 
-        update_weights(mlp, learning_rate);
+        gradient_descent(mlp, learning_rate);
     }
 }
 
 double _mse(Matrix* mat1, Matrix* mat2) {
     Matrix *sub = sub_mat(mat1, mat2);
-    apply_to_mat_with_out(sub, sub, fabs, false);
+    apply_func_mat(sub, sub, fabs, false);
 
     double sum = sum_mat(sub);
     free_mat(sub);
@@ -188,10 +191,10 @@ double test(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data
     double res = 0.0;
 
     for (int i = 0; i < num_samples; i++) {
-        Matrix computed_out = forward_pass(mlp, input_data[i]);
-        res += metric_fun(&computed_out, target_data[i]);
+        Matrix *computed_out = forward_pass(mlp, input_data[i]);
+        res += metric_fun(computed_out, target_data[i]);
 
-        printf("%f, %f\n", get_element(&computed_out, 0, 0), get_element(target_data[i], 0, 0));
+        printf("%f, %f\n", get_element(computed_out, 0, 0), get_element(target_data[i], 0, 0));
     }
 
     return res;

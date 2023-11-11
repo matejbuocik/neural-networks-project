@@ -77,10 +77,10 @@ int main(int argc, char *argv[]) {
     }
 
     Matrix** inputs_array;
-    int in_n = parse_csv_file(path_inputs, &inputs_array);
+    int in_n = parse_csv_file(path_inputs, &inputs_array, 1);
 
     Matrix** outputs_array;
-    int out_n = parse_csv_file(path_outputs, &outputs_array);
+    int out_n = parse_csv_file(path_outputs, &outputs_array, 0);
 
     if (in_n != out_n) {
         fprintf(stderr, "Input count is different than output count\n");
@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
     func_ptr activation_funs[2] = {&sigmoid, &sigmoid};
     func_ptr activation_funs_der[2] = {&sigmoid_der, &sigmoid_der};
 
-    MLP mlp = create_mlp(inputs_array[0]->cols, outputs_array[0]->cols, 1, hidden_layer_sizes,
+    MLP mlp = create_mlp(inputs_array[0]->cols - 1, outputs_array[0]->cols, 1, hidden_layer_sizes,
                          activation_funs, activation_funs_der);
 
     initialize_weights(&mlp, 42, -10, 10);

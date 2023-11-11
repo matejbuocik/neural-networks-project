@@ -2,7 +2,7 @@
 #include <ctype.h>
 
 
-int parse_csv_file(const char* filename, Matrix ***ptr_to_mat_array) {
+int parse_csv_file(const char* filename, Matrix ***ptr_to_mat_array, int is_input) {
     FILE* file = fopen(filename, "r");
     if (!file) {
         perror("Failed to open file");
@@ -20,6 +20,7 @@ int parse_csv_file(const char* filename, Matrix ***ptr_to_mat_array) {
         }
     }
     cols++; // Add 1 for the last column
+    cols += is_input; // Add 1 for input for bias (always 1)
 
     // Rewind the file
     rewind(file);
@@ -50,7 +51,7 @@ int parse_csv_file(const char* filename, Matrix ***ptr_to_mat_array) {
 
     // Go through the file and parse all the values
     int row = 0;
-    int col = 0;
+    int col = is_input;
     char buffer[256] = {0}; // Assuming a maximum token length of 256 characters
 
     while ((c = fgetc(file)) != EOF) {
@@ -62,7 +63,10 @@ int parse_csv_file(const char* filename, Matrix ***ptr_to_mat_array) {
             col++;
 
             if (col == cols) {
-                col = 0;
+                if (is_input) {
+                    set_element((*ptr_to_mat_array)[row], 0, 0, 1);
+                }
+                col = is_input;
                 row++;
             }
         } else {
