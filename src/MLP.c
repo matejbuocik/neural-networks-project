@@ -55,7 +55,6 @@ void free_mlp(MLP* mlp) {
         free_mat(mlp->neuron_outputs[i]);
         
         free_mat(mlp->error_derivatives[i]);
-        printf("here %d\n", i);
         free_mat(mlp->activation_derivatives[i]);
         
     }

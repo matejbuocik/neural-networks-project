@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
 
     int hidden_layer_sizes[2] = {10, 10};
     func_ptr activation_funs[3] = {&ReLU, &ReLU, &sigmoid};
-    func_ptr activation_funs_der[3] = {&ReLU_der, &ReLU, &sigmoid_der};
+    func_ptr activation_funs_der[3] = {&ReLU_der, &ReLU_der, &sigmoid_der};
 
     MLP mlp = create_mlp(inputs_array[0]->cols - 1, outputs_array[0]->cols, 2, hidden_layer_sizes,
                          activation_funs, activation_funs_der);
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
 
     // free model
     free_mlp(&mlp);
-printf("here\n");
+
     // free input and output arrays
     for (int i = 0; i < in_n; i++) {
         free_mat(inputs_array[i]);
