@@ -17,8 +17,10 @@ Matrix *create_mat(int rows, int cols) {
 
 void free_mat(Matrix* mat) {
     for (int i = 0; i < mat->rows; i++) {
+        printf("in free matrix\n");
         free(mat->data[i]);
     }
+    
     free(mat->data);
     free(mat);
 }

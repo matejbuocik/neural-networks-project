@@ -4,7 +4,7 @@
 #include "matrices.h"
 
 
-typedef double (*func_ptr)(double);
+typedef void (*func_ptr)(const Matrix *, const Matrix *);
 
 /*
     Multi-layer Perceptron.

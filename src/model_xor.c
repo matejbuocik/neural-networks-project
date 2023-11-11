@@ -90,14 +90,14 @@ int main(int argc, char *argv[]) {
     //print_matrices(inputs_array, in_n);
     //print_matrices(outputs_array, in_n);
 
-    int hidden_layer_sizes[1] = {4};
-    func_ptr activation_funs[2] = {&sigmoid, &sigmoid};
-    func_ptr activation_funs_der[2] = {&sigmoid_der, &sigmoid_der};
+    int hidden_layer_sizes[2] = {10, 10};
+    func_ptr activation_funs[3] = {&ReLU, &ReLU, &sigmoid};
+    func_ptr activation_funs_der[3] = {&ReLU_der, &ReLU, &sigmoid_der};
 
-    MLP mlp = create_mlp(inputs_array[0]->cols - 1, outputs_array[0]->cols, 1, hidden_layer_sizes,
+    MLP mlp = create_mlp(inputs_array[0]->cols - 1, outputs_array[0]->cols, 2, hidden_layer_sizes,
                          activation_funs, activation_funs_der);
 
-    initialize_weights(&mlp, 42, -10, 10);
+    initialize_weights(&mlp, 42, -1, 1);
 
     train(&mlp, in_n, inputs_array, outputs_array, learning_rate, num_batches, batch_size);
 
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
 
     // free model
     free_mlp(&mlp);
-
+printf("here\n");
     // free input and output arrays
     for (int i = 0; i < in_n; i++) {
         free_mat(inputs_array[i]);

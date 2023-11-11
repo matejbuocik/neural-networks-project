@@ -2,14 +2,15 @@
 #define ACTIVATION_FUNS
 
 #include <math.h>
+#include "matrices.h"
 
 
-double sigmoid(double x);
+void sigmoid(const Matrix *in, const Matrix *out);
 
-double sigmoid_der(double x);
+void sigmoid_der(const Matrix *in, const Matrix *out);
 
-double ReLU(double x);
+void ReLU(const Matrix *in, const Matrix *out);
 
-double ReLU_der(double x);
+void ReLU_der(const Matrix *in, const Matrix *out);
 
 #endif
