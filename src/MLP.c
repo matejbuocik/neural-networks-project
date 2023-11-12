@@ -3,6 +3,7 @@
 #include <time.h>
 #include <math.h>
 #include "parse_csv.h"
+#include "activation_functions.h"
 
 
 MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidden_layer_sizes[],
@@ -14,6 +15,8 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
     mlp.activation_funs_der = activation_funs_der;
 
     // allocate memory for arrays
+    mlp.hidden_layers_sizes     = (int *) malloc((num_hidden_layers + 2) * sizeof(int));
+
     mlp.weights                 = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
     mlp.inner_potentials        = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
     mlp.neuron_outputs          = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
@@ -23,8 +26,9 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
     mlp.weight_derivatives      = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
 
     // initialize allocated arrays
+    int i;
     int plus_one_output_col = 1;
-    for (int i = 0; i <= num_hidden_layers; i++) {
+    for (i = 0; i <= num_hidden_layers; i++) {
         int rows = (i == 0) ? input_size : hidden_layer_sizes[i - 1];  // neurons in previous layer
         int cols = hidden_layer_sizes[i];  // neurons in the next layer
         if (i == num_hidden_layers) {
@@ -41,7 +45,12 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
         mlp.neuron_outputs[i] = create_mat(1, cols + plus_one_output_col);  // First one will always be one (input for bias)
         mlp.error_derivatives[i] = create_mat(cols, 1);
         mlp.activation_derivatives[i] = create_mat(cols, 1);
+
+        mlp.hidden_layers_sizes[i + 1] = hidden_layer_sizes[i];
     }
+
+    mlp.hidden_layers_sizes[0] = input_size;
+    mlp.hidden_layers_sizes[i] = output_size; // i == num_hidden_layers + 1
 
     return mlp;
 }
@@ -59,6 +68,8 @@ void free_mlp(MLP* mlp) {
         
     }
 
+    free(mlp->hidden_layers_sizes);
+
     free(mlp->weights);
     free(mlp->inner_potentials);
     free(mlp->neuron_outputs);
@@ -68,15 +79,44 @@ void free_mlp(MLP* mlp) {
     free(mlp->weight_derivatives);
 }
 
-void initialize_weights(MLP* mlp, int seed, double max_val, double min_val) {
+double generate_normal_random(double mean, double variance) {
+    // https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform#References
+    double u1 = ((double)rand() / RAND_MAX);
+    double u2 = ((double)rand() / RAND_MAX);
+    double z0 = sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2);
+
+    return mean + sqrt(variance) * z0;
+}
+
+double generate_uniform(double min_val, double max_val) {
+    return ((double)rand() / RAND_MAX) * (max_val - min_val) + min_val;
+}
+
+void initialize_weights(MLP* mlp, int seed) {
     // TODO smart initialization (normal He for ReLU, normal Glorot for softmax)
     // TODO normal distribution function
     srand(seed);
 
     for (int i = 0; i <= mlp->num_hidden_layers; i++) {
+        int input_size = mlp->hidden_layers_sizes[i];
+        int output_size = mlp->hidden_layers_sizes[i + 1];
+
+        double (*generator)(double, double);
+        double arg1, arg2;
+
+        if (mlp->activation_functions[i] == &ReLU) {
+            generator = generate_normal_random;
+            arg1 = 0.0;
+            arg2 = 4.0 / (double)(input_size + output_size);
+        } else if (mlp->activation_functions[i] == &sigmoid) { // TODO: softmax here as well
+            generator = generate_normal_random;
+            arg1 = 0.0;
+            arg2 = 2.0 / (double)(input_size + output_size);
+        }
+
         for (int j = 0; j < mlp->weights[i]->rows; j++) {
             for (int k = 0; k < mlp->weights[i]->cols; k++) {
-                double random_val = ((double)rand() / RAND_MAX) * (max_val - min_val) + min_val;
+                double random_val = generator(arg1, arg2);
                 set_element(mlp->weights[i], j, k, random_val);
             }
         }
@@ -147,7 +187,7 @@ void gradient_descent(MLP *mlp, double learning_rate) {
         multiply_scalar_mat(mlp->weight_derivatives[k], learning_rate, mlp->weight_derivatives[k]);
         subtract_mat(mlp->weights[k], mlp->weight_derivatives[k], mlp->weights[k]);
     }
-
+print_matrices(mlp->weight_derivatives, mlp->num_hidden_layers + 1);
     set_derivatives_to_zero(mlp);
 }
 
@@ -195,14 +235,14 @@ double test(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data
     for (int i = 0; i < num_samples; i++) {
         Matrix *computed_out = forward_pass(mlp, input_data[i]);
 
-        print_matrices(&computed_out, 1);
+        //print_matrices(&computed_out, 1);
 
         res += metric_fun(computed_out, target_data[i]);
 
         printf("%f, %f\n", get_element(computed_out, 0, 0), get_element(target_data[i], 0, 0));
     }
 
-    print_matrices(mlp->weights, mlp->num_hidden_layers);
+    print_matrices(mlp->weights, mlp->num_hidden_layers + 1);
 
     return res;
 }

@@ -13,6 +13,7 @@ typedef void (*func_ptr)(const Matrix *, const Matrix *);
 typedef struct {
     /* Set on start */
     int num_hidden_layers;              /* Number of hidden layers */
+    int* hidden_layers_sizes;
     func_ptr* activation_functions;     /* Array of activation functions */
     func_ptr* activation_funs_der;      /* Array of derived activation functions */
 
@@ -35,7 +36,7 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
 void free_mlp(MLP* mlp);
 
 /* Initialize weights */
-void initialize_weights(MLP* mlp, int seed, double max_val, double min_val);
+void initialize_weights(MLP* mlp, int seed);
 
 /* Compute neuron outputs */
 Matrix *forward_pass(MLP* mlp, Matrix *input);

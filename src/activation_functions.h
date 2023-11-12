@@ -13,4 +13,8 @@ void ReLU(const Matrix *in, const Matrix *out);
 
 void ReLU_der(const Matrix *in, const Matrix *out);
 
+void softmax(const Matrix *in, const Matrix *out);
+
+void softmax_der(const Matrix *in, const Matrix *out);
+
 #endif

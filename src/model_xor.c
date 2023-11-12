@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
     MLP mlp = create_mlp(inputs_array[0]->cols - 1, outputs_array[0]->cols, 2, hidden_layer_sizes,
                          activation_funs, activation_funs_der);
 
-    initialize_weights(&mlp, 42, -1, 1);
+    initialize_weights(&mlp, 42);
 
     train(&mlp, in_n, inputs_array, outputs_array, learning_rate, num_batches, batch_size);
 
