@@ -22,7 +22,7 @@ double ReLU_scal(double x) {
     if (x > 0) {
         return x;
     } else {
-        return 0;
+        return 0.0;
     }
 }
 
@@ -32,9 +32,9 @@ void ReLU(const Matrix *in, const Matrix *out) {
 
 double ReLU_der_scal(double x) {
     if (x > 0) {
-        return 1;
+        return 1.0;
     } else {
-        return 0;
+        return 0.0;
     }
 }
 
