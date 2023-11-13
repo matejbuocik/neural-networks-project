@@ -5,16 +5,56 @@
 #include <stdlib.h>
 #include <getopt.h>
 
+void save_weights(MLP *mlp, const char *filename) {
+    FILE* file = fopen(filename, "w");
+    if (!file) {
+        perror("save_weights - Failed to open weights save file");
+        exit(1);
+    }
+
+    for (int i = 0; i <= mlp->num_hidden_layers; i++) {
+        for (int row = 0; row < mlp->weights[i]->rows; row++) {
+            for (int col = 0; col < mlp->weights[i]->cols; col++) {
+                fprintf(file, "%lf ", get_element(mlp->weights[i], row, col));
+            }
+            fprintf(file, "\n");
+        }
+        fprintf(file, "\n");
+    }
+}
+
+void load_weights(MLP *mlp, const char *filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        perror("load_weights - Failed to open file");
+        exit(1);
+    }
+
+    double weight;
+    for (int i = 0; i <= mlp->num_hidden_layers; i++) {
+        for (int row = 0; row < mlp->weights[i]->rows; row++) {
+            for (int col = 0; col < mlp->weights[i]->cols; col++) {
+                fscanf(file, "%lf ", &weight);
+                set_element(mlp->weights[i], row, col, weight);
+            }
+            fscanf(file, "\n");
+        }
+        fscanf(file, "\n");
+    }
+}
+
 extern char *optarg;
 
 void print_help() {
     printf("MLP\n");
-    printf("   -v --vectors\t\tInput vectors file (default data/xor_vectors.csv)\n");
-    printf("   -l --labels\t\tOutput labels file (default data/xor_labels.csv)\n");
-    printf("   -r --rate\t\tLearning rate (default 1.0)\n");
-    printf("   -n --num-batches\tNumber of batches (default 1000000)\n");
-    printf("   -s --batch-size\tSize of a batch (default 1)\n");
-    printf("\n   -h --help\t\tShow this help\n");
+    printf("   -r --rate\t\tLearning rate (default 0.01)\n");
+    printf("   -n --num-batches\tNumber of batches (default 10000)\n");
+    printf("   -s --batch-size\tSize of a batch (default 16)\n\n");
+
+    printf("   -i --input-weights\tLoad weights from file\n");
+    printf("   -o --output-weights\tSave weights to file\n\n");
+
+    printf("   -h --help\t\tShow this help\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -23,30 +63,28 @@ int main(int argc, char *argv[]) {
     char *train_outputs_path = "data/fashion_mnist_train_labels.csv";
     char *test_inputs_path = "data/fashion_mnist_test_vectors.csv";
     char *test_outputs_path = "data/fashion_mnist_test_labels.csv";
-    double learning_rate = 0.001;
+
+    double learning_rate = 0.01;
     int num_batches = 10000;
-    int batch_size = 32;
+    int batch_size = 16;
+
+    char *input_weights_path = NULL;
+    char *output_weights_path = NULL;
 
     // Parse args
     struct option longopts[] = {
-        {"vectors", 1, NULL, 'v'},
-        {"labels", 1, NULL, 'l'},
         {"rate", 1, NULL, 'r'},
         {"num-batches", 1, NULL, 'n'},
         {"batch-size", 1, NULL, 's'},
+        {"input-weights", 1, NULL, 'i'},
+        {"output-weights", 1, NULL, 'o'},
         {"help", 0, NULL, 'h'},
         {0, 0, 0, 0}
     };
     int opt;
     char *endptr;
-    while ((opt = getopt_long(argc, argv, "v:l:r:n:s:h", longopts, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "r:n:s:i:o:h", longopts, NULL)) != -1) {
         switch (opt) {
-            case 'v':  // vectors
-                train_inputs_path = optarg;
-                break;
-            case 'l':  // labels
-                train_outputs_path = optarg;
-                break;
             case 'r':  // learning rate
                 learning_rate = strtod(optarg, &endptr);
                 if (endptr == optarg) {
@@ -68,6 +106,12 @@ int main(int argc, char *argv[]) {
                     exit(1);
                 }
                 break;
+            case 'i':  // input weights
+                input_weights_path = optarg;
+                break;
+            case 'o':  // output weights
+                output_weights_path = optarg;
+                break;
             case 'h':  // help
                 print_help();
                 exit(0);
@@ -76,17 +120,6 @@ int main(int argc, char *argv[]) {
                 print_help();
                 exit(1);
         }
-    }
-
-    Matrix** train_inputs;
-    int train_in_n = parse_csv_vectors(train_inputs_path, &train_inputs, 1);
-
-    Matrix** train_outputs;
-    int train_out_n = parse_classification_labels(train_outputs_path, 10, &train_outputs);
-
-    if (train_in_n != train_out_n) {
-        fprintf(stderr, "Input count is different than output count\n");
-        exit(1);
     }
 
     Matrix** test_inputs;
@@ -103,32 +136,50 @@ int main(int argc, char *argv[]) {
     //print_matrices(inputs_array, in_n);
     //print_matrices(outputs_array, in_n);
 
-    int hidden_layer_sizes[3] = {64, 16, 10};
+    int hidden_layer_sizes[3] = {64, 32, 16};
     func_ptr activation_funs[4] = {&ReLU, &ReLU, &ReLU, &softmax};
     func_ptr activation_funs_der[4] = {&ReLU_der, &ReLU_der, &ReLU_der, &softmax_der};
 
-    MLP mlp = create_mlp(train_inputs[0]->cols - 1, train_outputs[0]->cols, 3, hidden_layer_sizes,
+    MLP mlp = create_mlp(test_inputs[0]->cols - 1, test_outputs[0]->cols, 3, hidden_layer_sizes,
                          activation_funs, activation_funs_der);
 
-    initialize_weights(&mlp, 42);
+    if (input_weights_path != NULL) {
+        load_weights(&mlp, input_weights_path);
+    } else {
+        Matrix** train_inputs;
+        int train_in_n = parse_csv_vectors(train_inputs_path, &train_inputs, 1);
 
-    train(&mlp, train_in_n, train_inputs, train_outputs, learning_rate, num_batches, batch_size);
+        Matrix** train_outputs;
+        int train_out_n = parse_classification_labels(train_outputs_path, 10, &train_outputs);
+
+        if (train_in_n != train_out_n) {
+            fprintf(stderr, "Input count is different than output count\n");
+            exit(1);
+        }
+
+        initialize_weights(&mlp, 42);
+        train(&mlp, train_in_n, train_inputs, train_outputs, learning_rate, num_batches, batch_size);
+
+        // free train inputs and outputs
+        for (int i = 0; i < train_in_n; i++) {
+            free_mat(train_inputs[i]);
+            free_mat(train_outputs[i]);
+        }
+        free(train_inputs);
+        free(train_outputs);
+    }
 
     double test_res = test(&mlp, test_in_n, test_inputs, test_outputs, NULL);
-
     printf("%f\n", test_res);
+
+    if (output_weights_path != NULL) {
+        save_weights(&mlp, output_weights_path);
+    }
 
     // free model
     free_mlp(&mlp);
 
-    // free input and output arrays
-    for (int i = 0; i < train_in_n; i++) {
-        free_mat(train_inputs[i]);
-        free_mat(train_outputs[i]);
-    }
-    free(train_inputs);
-    free(train_outputs);
-
+    // free test inputs and outputs
     for (int i = 0; i < test_in_n; i++) {
         free_mat(test_inputs[i]);
         free_mat(test_outputs[i]);
