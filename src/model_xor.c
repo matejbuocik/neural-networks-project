@@ -22,8 +22,8 @@ int main(int argc, char *argv[]) {
     char *path_inputs = "data/xor_vectors.csv";
     char *path_outputs = "data/xor_labels.csv";
     double learning_rate = 1;
-    int num_batches = 1000000;
-    int batch_size = 1;
+    int num_batches = 100000;
+    int batch_size = 4;
 
     // Parse args
     struct option longopts[] = {
@@ -90,11 +90,11 @@ int main(int argc, char *argv[]) {
     //print_matrices(inputs_array, in_n);
     //print_matrices(outputs_array, in_n);
 
-    int hidden_layer_sizes[2] = {10, 10};
-    func_ptr activation_funs[3] = {&ReLU, &ReLU, &sigmoid};
-    func_ptr activation_funs_der[3] = {&ReLU_der, &ReLU_der, &sigmoid_der};
+    int hidden_layer_sizes[1] = {3};
+    func_ptr activation_funs[2] = {&ReLU, &sigmoid};
+    func_ptr activation_funs_der[2] = {&ReLU_der, &sigmoid_der};
 
-    MLP mlp = create_mlp(inputs_array[0]->cols - 1, outputs_array[0]->cols, 2, hidden_layer_sizes,
+    MLP mlp = create_mlp(inputs_array[0]->cols - 1, outputs_array[0]->cols, 1, hidden_layer_sizes,
                          activation_funs, activation_funs_der);
 
     initialize_weights(&mlp, 42);
