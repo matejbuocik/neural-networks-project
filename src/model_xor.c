@@ -21,8 +21,8 @@ int main(int argc, char *argv[]) {
     // Set default values
     char *path_inputs = "data/xor_vectors.csv";
     char *path_outputs = "data/xor_labels.csv";
-    double learning_rate = 1;
-    int num_batches = 100000;
+    double learning_rate = 0.1;
+    int num_batches = 1000;
     int batch_size = 4;
 
     // Parse args
@@ -77,10 +77,10 @@ int main(int argc, char *argv[]) {
     }
 
     Matrix** inputs_array;
-    int in_n = parse_csv_file(path_inputs, &inputs_array, 1);
+    int in_n = parse_csv_vectors(path_inputs, &inputs_array, 1);
 
     Matrix** outputs_array;
-    int out_n = parse_csv_file(path_outputs, &outputs_array, 0);
+    int out_n = parse_classification_labels(path_outputs, 2, &outputs_array);
 
     if (in_n != out_n) {
         fprintf(stderr, "Input count is different than output count\n");
@@ -90,9 +90,9 @@ int main(int argc, char *argv[]) {
     //print_matrices(inputs_array, in_n);
     //print_matrices(outputs_array, in_n);
 
-    int hidden_layer_sizes[1] = {3};
-    func_ptr activation_funs[2] = {&ReLU, &sigmoid};
-    func_ptr activation_funs_der[2] = {&ReLU_der, &sigmoid_der};
+    int hidden_layer_sizes[1] = {4};
+    func_ptr activation_funs[2] = {&ReLU, &softmax};
+    func_ptr activation_funs_der[2] = {&ReLU_der, &softmax_der};
 
     MLP mlp = create_mlp(inputs_array[0]->cols - 1, outputs_array[0]->cols, 1, hidden_layer_sizes,
                          activation_funs, activation_funs_der);

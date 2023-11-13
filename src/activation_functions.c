@@ -1,4 +1,5 @@
 #include "activation_functions.h"
+#include <assert.h>
 
 
 double sigmoid_scal(double x) {
@@ -44,9 +45,18 @@ void ReLU_der(const Matrix *in, const Matrix *out) {
 }
 
 void softmax(const Matrix *in, const Matrix *out) {
+    assert(in->cols == out->cols && in->rows == out->rows);
 
+    double suma = 0.0;
+    for (int i = 0; i < in->cols; i++) {
+        suma += exp(in->data[0][i]);
+    }
+
+    for (int i = 0; i < out->cols; i++) {
+        out->data[0][i] = exp(in->data[0][i]) / suma;
+    }
 }
 
 void softmax_der(const Matrix *in, const Matrix *out) {
-    
+
 }

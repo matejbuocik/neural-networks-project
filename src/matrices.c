@@ -9,7 +9,7 @@ Matrix *create_mat(int rows, int cols) {
 
     mat->data = (double**)malloc(rows * sizeof(double*));
     for (int row = 0; row < rows; row++) {
-        mat->data[row] = (double*)malloc(cols * sizeof(double));
+        mat->data[row] = (double*)calloc(cols, sizeof(double));
     }
 
     return mat;
@@ -19,7 +19,7 @@ void free_mat(Matrix* mat) {
     for (int i = 0; i < mat->rows; i++) {
         free(mat->data[i]);
     }
-    
+
     free(mat->data);
     free(mat);
 }

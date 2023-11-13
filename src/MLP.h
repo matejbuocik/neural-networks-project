@@ -48,7 +48,7 @@ void backpropagate(MLP* mlp, Matrix *input, Matrix *target_output);
 void set_derivatives_to_zero(MLP* mlp);
 
 /* Update the weights */
-void gradient_descent(MLP* mlp, double learning_rate);
+void gradient_descent(MLP* mlp, double learning_rate, int batch_size);
 
 /* Train the MLP */
 void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[], double learning_rate, int num_batches, int batch_size);

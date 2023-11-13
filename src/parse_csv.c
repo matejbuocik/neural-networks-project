@@ -1,8 +1,54 @@
 #include "parse_csv.h"
 #include <ctype.h>
+#include <assert.h>
 
 
-int parse_csv_file(const char* filename, Matrix ***ptr_to_mat_array, int is_input) {
+int parse_classification_labels(const char *filename, int categories, Matrix ***ptr_to_mat_array) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        perror("Failed to open labels file");
+        exit(1);
+    }
+
+    // Count the number of lines in the file into num_matrices
+    bool in_line = false;
+    int num_matrices = 0;
+    char c;
+
+    while ((c = fgetc(file)) != EOF) {
+        if (isdigit(c) && !in_line) {
+            num_matrices++;
+            in_line = true;
+        }
+        if (c == '\n') {
+            in_line = false;
+        }
+    }
+
+    // Rewind the file
+    rewind(file);
+
+    // Allocate matrices
+    (*ptr_to_mat_array) = (Matrix**)malloc(num_matrices * sizeof(Matrix*));
+
+    // Create matrices with the appropriate dimensions
+    for (int i = 0; i < num_matrices; i++) {
+        (*ptr_to_mat_array)[i] = create_mat(1, categories);
+    }
+
+    int number = 0;
+    int index = 0;
+    while (fscanf(file, "%d\n", &number) == 1) {
+        assert(number < categories);
+        (*ptr_to_mat_array)[index]->data[0][number] = 1;
+        index++;
+    }
+
+    return num_matrices;
+}
+
+
+int parse_csv_vectors(const char* filename, Matrix ***ptr_to_mat_array, int is_input) {
     FILE* file = fopen(filename, "r");
     if (!file) {
         perror("Failed to open file");
