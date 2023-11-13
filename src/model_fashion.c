@@ -19,11 +19,13 @@ void print_help() {
 
 int main(int argc, char *argv[]) {
     // Set default values
-    char *path_inputs = "data/xor_vectors.csv";
-    char *path_outputs = "data/xor_labels.csv";
-    double learning_rate = 0.1;
-    int num_batches = 1000;
-    int batch_size = 4;
+    char *train_inputs_path = "data/fashion_mnist_train_vectors.csv";
+    char *train_outputs_path = "data/fashion_mnist_train_labels.csv";
+    char *test_inputs_path = "data/fashion_mnist_test_vectors.csv";
+    char *test_outputs_path = "data/fashion_mnist_test_labels.csv";
+    double learning_rate = 0.001;
+    int num_batches = 10000;
+    int batch_size = 32;
 
     // Parse args
     struct option longopts[] = {
@@ -40,10 +42,10 @@ int main(int argc, char *argv[]) {
     while ((opt = getopt_long(argc, argv, "v:l:r:n:s:h", longopts, NULL)) != -1) {
         switch (opt) {
             case 'v':  // vectors
-                path_inputs = optarg;
+                train_inputs_path = optarg;
                 break;
             case 'l':  // labels
-                path_outputs = optarg;
+                train_outputs_path = optarg;
                 break;
             case 'r':  // learning rate
                 learning_rate = strtod(optarg, &endptr);
@@ -76,13 +78,24 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    Matrix** inputs_array;
-    int in_n = parse_csv_vectors(path_inputs, &inputs_array, 1);
+    Matrix** train_inputs;
+    int train_in_n = parse_csv_vectors(train_inputs_path, &train_inputs, 1);
 
-    Matrix** outputs_array;
-    int out_n = parse_classification_labels(path_outputs, 2, &outputs_array);
+    Matrix** train_outputs;
+    int train_out_n = parse_classification_labels(train_outputs_path, 10, &train_outputs);
 
-    if (in_n != out_n) {
+    if (train_in_n != train_out_n) {
+        fprintf(stderr, "Input count is different than output count\n");
+        exit(1);
+    }
+
+    Matrix** test_inputs;
+    int test_in_n = parse_csv_vectors(test_inputs_path, &test_inputs, 1);
+
+    Matrix** test_outputs;
+    int test_out_n = parse_classification_labels(test_outputs_path, 10, &test_outputs);
+
+    if (test_in_n != test_out_n) {
         fprintf(stderr, "Input count is different than output count\n");
         exit(1);
     }
@@ -90,18 +103,18 @@ int main(int argc, char *argv[]) {
     //print_matrices(inputs_array, in_n);
     //print_matrices(outputs_array, in_n);
 
-    int hidden_layer_sizes[1] = {4};
-    func_ptr activation_funs[2] = {&ReLU, &softmax};
-    func_ptr activation_funs_der[2] = {&ReLU_der, &softmax_der};
+    int hidden_layer_sizes[3] = {64, 16, 10};
+    func_ptr activation_funs[4] = {&ReLU, &ReLU, &ReLU, &softmax};
+    func_ptr activation_funs_der[4] = {&ReLU_der, &ReLU_der, &ReLU_der, &softmax_der};
 
-    MLP mlp = create_mlp(inputs_array[0]->cols - 1, outputs_array[0]->cols, 1, hidden_layer_sizes,
+    MLP mlp = create_mlp(train_inputs[0]->cols - 1, train_outputs[0]->cols, 3, hidden_layer_sizes,
                          activation_funs, activation_funs_der);
 
     initialize_weights(&mlp, 42);
 
-    train(&mlp, in_n, inputs_array, outputs_array, learning_rate, num_batches, batch_size);
+    train(&mlp, train_in_n, train_inputs, train_outputs, learning_rate, num_batches, batch_size);
 
-    double test_res = test(&mlp, in_n, inputs_array, outputs_array, NULL);
+    double test_res = test(&mlp, test_in_n, test_inputs, test_outputs, NULL);
 
     printf("%f\n", test_res);
 
@@ -109,10 +122,17 @@ int main(int argc, char *argv[]) {
     free_mlp(&mlp);
 
     // free input and output arrays
-    for (int i = 0; i < in_n; i++) {
-        free_mat(inputs_array[i]);
-        free_mat(outputs_array[i]);
+    for (int i = 0; i < train_in_n; i++) {
+        free_mat(train_inputs[i]);
+        free_mat(train_outputs[i]);
     }
-    free(inputs_array);
-    free(outputs_array);
+    free(train_inputs);
+    free(train_outputs);
+
+    for (int i = 0; i < test_in_n; i++) {
+        free_mat(test_inputs[i]);
+        free_mat(test_outputs[i]);
+    }
+    free(test_inputs);
+    free(test_outputs);
 }

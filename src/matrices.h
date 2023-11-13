@@ -26,7 +26,7 @@ void set_element(Matrix* mat, int row, int col, double value);
 double get_element(const Matrix* mat, int row, int col);
 
 /* Multiply two matrices, store result in `out`*/
-void multiply_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out);
+void multiply_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out, bool back_prop);
 
 /* Apply `fun` to every element of the matrix, store result in `out`*/
 void apply_func_mat(const Matrix *mat, const Matrix *out, double (*fun)(double), bool transpose_out);

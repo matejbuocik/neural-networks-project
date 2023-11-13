@@ -9,7 +9,7 @@ Matrix *create_mat(int rows, int cols) {
 
     mat->data = (double**)malloc(rows * sizeof(double*));
     for (int row = 0; row < rows; row++) {
-        mat->data[row] = (double*)malloc(cols * sizeof(double));
+        mat->data[row] = (double*)calloc(cols, sizeof(double));
     }
 
     return mat;
@@ -19,6 +19,7 @@ void free_mat(Matrix* mat) {
     for (int i = 0; i < mat->rows; i++) {
         free(mat->data[i]);
     }
+
     free(mat->data);
     free(mat);
 }
@@ -31,13 +32,13 @@ double get_element(const Matrix* mat, int row, int col) {
     return mat->data[row][col];
 }
 
-void multiply_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out) {
+void multiply_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out, bool back_prop) {
     int rows1 = mat1->rows;
     int cols1 = mat1->cols;
     int cols2 = mat2->cols;
 
     int offset = 0;
-    if (mat1->rows != mat2->rows) {
+    if (back_prop) {
         // Skip biases row, used during backpropagation
         offset = 1;
     }
