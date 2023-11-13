@@ -7,7 +7,7 @@
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
-                "src/model_xor.c", "src/MLP.c", "src/activation_functions.c", "src/parse_csv.c", "src/matrices.c", "-lm",
+                "src/model_fashion.c", "src/MLP.c", "src/activation_functions.c", "src/parse_csv.c", "src/matrices.c", "-lm",
                 "-o",
                 "mlp"
             ],

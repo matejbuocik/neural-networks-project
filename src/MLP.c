@@ -93,8 +93,6 @@ double generate_uniform(double min_val, double max_val) {
 }
 
 void initialize_weights(MLP* mlp, int seed) {
-    // TODO smart initialization (normal He for ReLU, normal Glorot for softmax)
-    // TODO normal distribution function
     srand(seed);
 
     for (int i = 0; i <= mlp->num_hidden_layers; i++) {
@@ -105,10 +103,12 @@ void initialize_weights(MLP* mlp, int seed) {
         double arg1, arg2;
 
         if (mlp->activation_functions[i] == &ReLU) {
+            // normal He
             generator = generate_normal_random;
             arg1 = 0.0;
             arg2 = 4.0 / (double)(input_size + output_size);
-        } else if (mlp->activation_functions[i] == &sigmoid) { // TODO: softmax here as well
+        } else if (mlp->activation_functions[i] == &softmax || mlp->activation_functions[i] == &sigmoid) {
+            // normal Glorot
             generator = generate_normal_random;
             arg1 = 0.0;
             arg2 = 2.0 / (double)(input_size + output_size);
@@ -217,6 +217,7 @@ void gradient_descent(MLP *mlp, double learning_rate, int batch_size) {
         multiply_scalar_mat(mlp->weight_derivatives[k], -learning_rate / batch_size, mlp->weight_derivatives[k]);
         subtract_mat(mlp->weights[k], mlp->weight_derivatives[k], mlp->weights[k]);
     }
+// print_matrices(mlp->weights, mlp->num_hidden_layers + 1);
 // print_matrices(mlp->weight_derivatives, mlp->num_hidden_layers + 1);
     set_derivatives_to_zero(mlp);
 }
@@ -229,7 +230,6 @@ int _get_random_int(int min, int max) {
 }
 
 void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[], double learning_rate, int num_batches, int batch_size) {
-    // TODO use classification
     // input_data[0] must be 1
     set_derivatives_to_zero(mlp);
 
@@ -265,16 +265,44 @@ double test(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data
     }
     double res = 0.0;
 
+    int hits = 0;
+
     for (int i = 0; i < num_samples; i++) {
         Matrix *computed_out = forward_pass(mlp, input_data[i]);
 
-        //print_matrices(&computed_out, 1);
+        // print_matrices(&computed_out, 1);
 
-        res += metric_fun(computed_out, target_data[i]);
+        // res += metric_fun(computed_out, target_data[i]);
+
+        double max_comp = computed_out->data[0][0];
+        int max_index = 0;
+        int target_index = 0;
+        for (int j = 0; j < target_data[i]->cols; j++) {
+            if (computed_out->data[0][j] > max_comp) {
+                max_index = j;
+                max_comp = computed_out->data[0][j];
+            }
+
+            if (target_data[i]->data[0][j] == 1) {
+                target_index = j;
+            }
+        }
+
+        if (max_index == target_index) {
+            hits++;
+        } else {
+            for (int j = 0; j < target_data[i]->cols; j++) {
+                printf("%f, ", computed_out->data[0][j]);
+            }
+
+            printf("   Target: %d\n", target_index);
+        }
 
         // printf("%f, %f\n", get_element(computed_out, 0, 0), get_element(target_data[i], 0, 0));
-        printf("%f, %f      %f, %f\n", computed_out->data[0][0], computed_out->data[0][1], target_data[i]->data[0][0], target_data[i]->data[0][1]);
+        // printf("%f, %f      %f, %f\n", computed_out->data[0][0], computed_out->data[0][1], target_data[i]->data[0][0], target_data[i]->data[0][1]);
     }
+
+    printf("%d / %d\n", hits, num_samples);
 
     // print_matrices(mlp->weights, mlp->num_hidden_layers + 1);
 
