@@ -136,38 +136,41 @@ int main(int argc, char *argv[]) {
     //print_matrices(inputs_array, in_n);
     //print_matrices(outputs_array, in_n);
 
-    int hidden_layer_sizes[3] = {64, 32, 16};
-    func_ptr activation_funs[4] = {&ReLU, &ReLU, &ReLU, &softmax};
-    func_ptr activation_funs_der[4] = {&ReLU_der, &ReLU_der, &ReLU_der, &softmax_der};
+    int hidden_layer_sizes[2] = {128, 32};
+    func_ptr activation_funs[3] = {&ReLU, &ReLU, &softmax};
+    func_ptr activation_funs_der[3] = {&ReLU_der, &ReLU_der, &softmax_der};
 
-    MLP mlp = create_mlp(test_inputs[0]->cols - 1, test_outputs[0]->cols, 3, hidden_layer_sizes,
+    MLP mlp = create_mlp(test_inputs[0]->cols - 1, test_outputs[0]->cols, 2, hidden_layer_sizes,
                          activation_funs, activation_funs_der);
+
+
+    Matrix** train_inputs;
+    int train_in_n = parse_csv_vectors(train_inputs_path, &train_inputs, 1);
+
+    Matrix** train_outputs;
+    int train_out_n = parse_classification_labels(train_outputs_path, 10, &train_outputs);
+
+    if (train_in_n != train_out_n) {
+        fprintf(stderr, "Input count is different than output count\n");
+        exit(1);
+    }
 
     if (input_weights_path != NULL) {
         load_weights(&mlp, input_weights_path);
     } else {
-        Matrix** train_inputs;
-        int train_in_n = parse_csv_vectors(train_inputs_path, &train_inputs, 1);
-
-        Matrix** train_outputs;
-        int train_out_n = parse_classification_labels(train_outputs_path, 10, &train_outputs);
-
-        if (train_in_n != train_out_n) {
-            fprintf(stderr, "Input count is different than output count\n");
-            exit(1);
-        }
-
         initialize_weights(&mlp, 42);
-        train(&mlp, train_in_n, train_inputs, train_outputs, learning_rate, num_batches, batch_size);
-
-        // free train inputs and outputs
-        for (int i = 0; i < train_in_n; i++) {
-            free_mat(train_inputs[i]);
-            free_mat(train_outputs[i]);
-        }
-        free(train_inputs);
-        free(train_outputs);
     }
+
+    train(&mlp, train_in_n, train_inputs, train_outputs, learning_rate, num_batches, batch_size);
+
+    // free train inputs and outputs
+    for (int i = 0; i < train_in_n; i++) {
+        free_mat(train_inputs[i]);
+        free_mat(train_outputs[i]);
+    }
+    free(train_inputs);
+    free(train_outputs);
+
 
     double test_res = test(&mlp, test_in_n, test_inputs, test_outputs, NULL);
     printf("%f\n", test_res);
