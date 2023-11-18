@@ -20,8 +20,11 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
     mlp.weights                 = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
     mlp.inner_potentials        = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
     mlp.neuron_outputs          = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
-
-    mlp.error_derivatives       = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
+    // the error_derivatives[-1] is added for extensions of the MLP with adding preciding layers
+    // in such case this filed is needed for the backpropagation on the whole ensemble
+    mlp.error_derivatives       = (Matrix**) malloc((num_hidden_layers + 2) * sizeof(Matrix*));
+    mlp.error_derivatives = mlp.error_derivatives + 1;
+    mlp.error_derivatives[-1] = create_mat(input_size, 1);
     mlp.activation_derivatives  = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
     mlp.weight_derivatives      = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
 
@@ -77,19 +80,6 @@ void free_mlp(MLP* mlp) {
     free(mlp->error_derivatives);
     free(mlp->activation_derivatives);
     free(mlp->weight_derivatives);
-}
-
-double generate_normal_random(double mean, double variance) {
-    // https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform#References
-    double u1 = ((double)rand() / RAND_MAX);
-    double u2 = ((double)rand() / RAND_MAX);
-    double z0 = sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2);
-
-    return mean + sqrt(variance) * z0;
-}
-
-double generate_uniform(double min_val, double max_val) {
-    return ((double)rand() / RAND_MAX) * (max_val - min_val) + min_val;
 }
 
 void initialize_weights(MLP* mlp, int seed) {
@@ -191,6 +181,9 @@ void backpropagate(MLP *mlp, Matrix *input, Matrix *target_output) {
         elem_multiply_mat(mlp->error_derivatives[i], mlp->activation_derivatives[i], mlp->error_derivatives[i]);
     }
 
+    // For preceding layers extensions
+    multiply_mat(mlp->weights[0], mlp->error_derivatives[0], mlp->error_derivatives[-1], true);
+
     // computing derivatives of the error function with respect to all weights
     for (int k = 0; k <= last; k++) {
         for (int i = 0; i < mlp->weight_derivatives[k]->rows; i++) {
@@ -205,13 +198,13 @@ void backpropagate(MLP *mlp, Matrix *input, Matrix *target_output) {
     }
 }
 
-void set_derivatives_to_zero(MLP *mlp) {
+void multiply_derivatives_by(MLP* mlp, double factor) {
     for (int k = 0; k <= mlp->num_hidden_layers; k++) {
-        multiply_scalar_mat(mlp->weight_derivatives[k], 0.0, mlp->weight_derivatives[k]);
+        multiply_scalar_mat(mlp->weight_derivatives[k], factor, mlp->weight_derivatives[k]);
     }
 }
 
-void gradient_descent(MLP *mlp, double learning_rate, int batch_size) {
+void gradient_descent(MLP *mlp, double learning_rate, int batch_size, double aplha) {
     // TODO use better techniques (adaptive learning rate, momentum, ...)
     for (int k = 0; k <= mlp->num_hidden_layers; k++) {
         multiply_scalar_mat(mlp->weight_derivatives[k], -learning_rate / batch_size, mlp->weight_derivatives[k]);
@@ -219,49 +212,33 @@ void gradient_descent(MLP *mlp, double learning_rate, int batch_size) {
     }
 // print_matrices(mlp->weights, mlp->num_hidden_layers + 1);
 // print_matrices(mlp->weight_derivatives, mlp->num_hidden_layers + 1);
-    set_derivatives_to_zero(mlp);
+    multiply_derivatives_by(mlp, aplha);
 }
 
-int _get_random_int(int min, int max) {
-    int range = max - min + 1;  // include min and max
-    int random_int = min + rand() % range;
-
-    return random_int;
-}
-
-void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[], double learning_rate, int num_batches, int batch_size) {
+void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[],
+           double learning_rate, int num_batches, int batch_size, double alpha) {
     // input_data[0] must be 1
-    set_derivatives_to_zero(mlp);
+    multiply_derivatives_by(mlp, 0.0);
 
     for (int batch = 0; batch < num_batches; batch++) {
         for (int i = 0; i < batch_size; i++) {
             // TODO spustit na batch_size procesoroch naraz
-            int data_i = _get_random_int(0, num_samples - 1);
+            int data_i = get_random_int(0, num_samples - 1);
 
-            Matrix* res = forward_pass(mlp, input_data[data_i]);
+            forward_pass(mlp, input_data[data_i]);
             backpropagate(mlp, input_data[data_i], target_data[data_i]);
 // print_matrices(mlp->weight_derivatives, mlp->num_hidden_layers + 1);
         }
 
-        gradient_descent(mlp, learning_rate, batch_size);
+        gradient_descent(mlp, learning_rate, batch_size, alpha);
 
 // print_matrices(mlp->weights, mlp->num_hidden_layers + 1);
     }
 }
 
-double _mse(Matrix* mat1, Matrix* mat2) {
-    Matrix *sub = sub_mat(mat1, mat2);
-    apply_func_mat(sub, sub, fabs, false);
-
-    double sum = sum_mat(sub);
-    free_mat(sub);
-
-    return sum;
-}
-
 double test(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[], double (*metric_fun)(Matrix*, Matrix*)) {
     if (metric_fun == NULL) {
-        metric_fun = &_mse;  // default metric function
+        metric_fun = &mse;  // default metric function
     }
     double res = 0.0;
 

@@ -2,6 +2,7 @@
 #define MULTI_LAYER_PERCEPTRON
 
 #include "matrices.h"
+#include "activation_functions.h"
 
 
 typedef void (*func_ptr)(const Matrix *, const Matrix *);
@@ -45,15 +46,17 @@ Matrix *forward_pass(MLP* mlp, Matrix *input);
 void backpropagate(MLP* mlp, Matrix *input, Matrix *target_output);
 
 /* Set error function partial derivatives by weights to zero */
-void set_derivatives_to_zero(MLP* mlp);
+void multiply_derivatives_by(MLP* mlp, double factor);
 
 /* Update the weights */
-void gradient_descent(MLP* mlp, double learning_rate, int batch_size);
+void gradient_descent(MLP *mlp, double learning_rate, int batch_size, double aplha);
 
 /* Train the MLP */
-void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[], double learning_rate, int num_batches, int batch_size);
+void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[],
+           double learning_rate, int num_batches, int batch_size, double alpha);
 
 /* Test the model on `input_data` using `target_data` with `metric_fun` (if NULL, use mean square error)*/
-double test(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[], double (*metric_fun)(Matrix*, Matrix*));
+double test(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[],
+            double (*metric_fun)(Matrix*, Matrix*));
 
 #endif
