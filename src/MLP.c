@@ -77,7 +77,7 @@ void free_mlp(MLP* mlp) {
     free(mlp->inner_potentials);
     free(mlp->neuron_outputs);
 
-    free(mlp->error_derivatives);
+    free(mlp->error_derivatives - 1);  // :D
     free(mlp->activation_derivatives);
     free(mlp->weight_derivatives);
 }

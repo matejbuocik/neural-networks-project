@@ -34,17 +34,17 @@ ConLayer create_con_layer(int input_width, int input_height, int num_feature_map
         convl.error_derivatives[i] = create_mat(neurons_in_feat_map, 1);
     }
 
-    convl.output = create_mat(1, neurons_in_feat_map / (pool_size * pool_size) + 1);
+    convl.output = create_mat(1, neurons_in_feat_map / (pool_size * pool_size) * num_feature_maps + 1);
     convl.output->data[0][0] = 1;
 
-    convl.potential = create_mat(1, neurons_in_feat_map / (pool_size * pool_size));
-    convl.error_der = create_mat(neurons_in_feat_map / (pool_size * pool_size), 1);
+    convl.potential = create_mat(1, neurons_in_feat_map / (pool_size * pool_size) * num_feature_maps);
+    convl.error_der = create_mat(neurons_in_feat_map / (pool_size * pool_size) * num_feature_maps, 1);
 
     return convl;
 }
 
 void free_con_layer(ConLayer* conl) {
-    for (int i = 0; i <= conl->num_feature_maps; i++) {
+    for (int i = 0; i < conl->num_feature_maps; i++) {
         free_mat(conl->weights[i]);
         free_mat(conl->weight_derivatives[i]);
 
@@ -71,7 +71,7 @@ void free_con_layer(ConLayer* conl) {
 void init_weights(ConLayer* conl, int seed) {
     srand(seed);
 
-    for (int i = 0; i <= conl->num_feature_maps; i++) {
+    for (int i = 0; i < conl->num_feature_maps; i++) {
         for (int j = 0; j < conl->weights[i]->rows; j++) {
             for (int k = 0; k < conl->weights[i]->cols; k++) {
                 double random_val = generate_normal_random(0.0, 1.0);
@@ -99,7 +99,11 @@ Matrix *fwd_pass(ConLayer *conl, Matrix *input) {
                         int in_x = out_x + x_offset;
                         int in_y = out_y + y_offset;
 
-                        inner_potential += conl->weights[map_i]->data[y_offset][x_offset] * input->data[0][in_y * conl->input_width + in_x + 1]; // ignore initial 1
+                        int input_index = in_y * conl->input_width + in_x + 1;
+                        double weight = conl->weights[map_i]->data[y_offset][x_offset];
+                        double input_data = input->data[0][input_index];
+
+                        inner_potential += weight * input_data; // ignore initial 1
                     }
                 }
 
@@ -120,7 +124,7 @@ Matrix *fwd_pass(ConLayer *conl, Matrix *input) {
                 int out_index = map_i * width * height + out_y * width + out_x;
 
                 // det initial max value
-                int max_i = out_y * conl->pool_size * f_map_w + out_x * conl->pool_size;
+                int max_i = out_y * f_map_w + out_x * conl->pool_size;
                 double max = conl->neuron_outputs[map_i]->data[0][max_i];
                 conl->error_derivatives[map_i]->data[max_i][0] = out_index;
 
@@ -142,7 +146,7 @@ Matrix *fwd_pass(ConLayer *conl, Matrix *input) {
                 }
                 // TODO: max pool based on iner potentials, apply activation later
                 conl->output->data[0][map_i * width * height + out_y * width + out_x + 1] = max;
-                conl->potential->data[0][map_i * width * height + out_y * width + out_x + 1] = conl->inner_potentials[map_i]->data[0][max_i];
+                conl->potential->data[0][map_i * width * height + out_y * width + out_x] = conl->inner_potentials[map_i]->data[0][max_i];
             }
         }
     }
@@ -187,7 +191,7 @@ void backprop(ConLayer *conl, Matrix *input, Matrix *target_output) {
                         // account for 1 at position 0 in the input data vector
                         int in_index = in_y * conl->input_width + in_x + 1;
 
-                        der += conl->error_derivatives[mask_i]->data[error_index][0] * input->data[in_index][0];
+                        der += conl->error_derivatives[mask_i]->data[error_index][0] * input->data[0][in_index];
                     }
                 }
 
@@ -201,7 +205,7 @@ void backprop(ConLayer *conl, Matrix *input, Matrix *target_output) {
 
 
 void multiply_ders_by(ConLayer* conl, double factor) {
-    for (int k = 0; k <= conl->num_feature_maps; k++) {
+    for (int k = 0; k < conl->num_feature_maps; k++) {
         multiply_scalar_mat(conl->weight_derivatives[k], factor, conl->weight_derivatives[k]);
     }
 
@@ -211,7 +215,7 @@ void multiply_ders_by(ConLayer* conl, double factor) {
 
 void grad_des(ConLayer* conl, double learning_rate, int batch_size, double alpha) {
     // TODO use better techniques (adaptive learning rate, momentum, ...)
-    for (int k = 0; k <= conl->num_feature_maps; k++) {
+    for (int k = 0; k < conl->num_feature_maps; k++) {
         multiply_scalar_mat(conl->weight_derivatives[k], -learning_rate / batch_size, conl->weight_derivatives[k]);
         subtract_mat(conl->weights[k], conl->weight_derivatives[k], conl->weights[k]);
     }
