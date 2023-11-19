@@ -21,8 +21,8 @@ int main(int argc, char *argv[]) {
     // Set default values
     char *path_inputs = "data/xor_vectors.csv";
     char *path_outputs = "data/xor_labels.csv";
-    double learning_rate = 0.1;
-    int num_batches = 1000;
+    double learning_rate = 0.001;
+    int num_batches = 100;
     int batch_size = 4;
 
     // Parse args
@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
     //print_matrices(inputs_array, in_n);
     //print_matrices(outputs_array, in_n);
 
-    int hidden_layer_sizes[1] = {4};
+    int hidden_layer_sizes[1] = {10};
     func_ptr activation_funs[2] = {&ReLU, &softmax};
     func_ptr activation_funs_der[2] = {&ReLU_der, &softmax_der};
 
@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
 
     initialize_weights(&mlp, 42);
 
-    train(&mlp, in_n, inputs_array, outputs_array, learning_rate, num_batches, batch_size);
+    train(&mlp, in_n, inputs_array, outputs_array, learning_rate, num_batches, batch_size, 0);
 
     double test_res = test(&mlp, in_n, inputs_array, outputs_array, NULL);
 

@@ -27,7 +27,15 @@ typedef struct {
     Matrix** error_derivatives;         /* Array of error function partial derivatives by neuron outputs (transponed) */
     Matrix** activation_derivatives;    /* Array of activation function derivatives vectors (transponed) */
     Matrix** weight_derivatives;        /* Array of error function partial derivatives by weights vectors */
+
     Matrix** weight_deltas;
+
+    // Adam
+    Matrix** first_momentum;
+    Matrix** second_momentum;
+    Matrix** first_momentum_estimate;
+    Matrix** second_momentum_estimate;
+     
 } MLP;
 
 /* Create a MLP */

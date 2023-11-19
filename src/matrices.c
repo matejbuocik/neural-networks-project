@@ -115,6 +115,22 @@ void elem_multiply_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* res
     }
 }
 
+void elem_divide_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* result) {
+    for (int i = 0; i < mat1->rows; i++) {
+        for (int j = 0; j < mat1->cols; j++) {
+            result->data[i][j] = mat1->data[i][j] / mat2->data[i][j];
+        }
+    }
+}
+
+void add_scalar_mat(const Matrix* mat1, double member, const Matrix* out) {
+    for (int i = 0; i < mat1->rows; i++) {
+        for (int j = 0; j < mat1->cols; j++) {
+            out->data[i][j] = mat1->data[i][j] + member;
+        }
+    }
+}
+
 Matrix *sub_mat(const Matrix* mat1, const Matrix* mat2) {
     int rows = mat1->rows;
     int cols = mat1->cols;

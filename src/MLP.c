@@ -29,6 +29,12 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
     mlp.weight_derivatives      = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
     mlp.weight_deltas           = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
 
+    // Adam
+    mlp.first_momentum          = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
+    mlp.second_momentum         = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
+    mlp.first_momentum_estimate = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
+    mlp.second_momentum_estimate = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
+
     // initialize allocated arrays
     int i;
     int plus_one_output_col = 1;
@@ -45,6 +51,12 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
         mlp.weights[i] = create_mat(rows, cols);
         mlp.weight_derivatives[i] = create_mat(rows, cols);
         mlp.weight_deltas[i] = create_mat(rows, cols);
+
+        // Adam
+        mlp.first_momentum[i] = create_mat(rows, cols);
+        mlp.second_momentum[i] = create_mat(rows, cols);
+        mlp.first_momentum_estimate[i] = create_mat(rows, cols);
+        mlp.second_momentum_estimate[i] = create_mat(rows, cols);
 
         mlp.inner_potentials[i] = create_mat(1, cols);
         mlp.neuron_outputs[i] = create_mat(1, cols + plus_one_output_col);  // First one will always be one (input for bias)
@@ -66,6 +78,11 @@ void free_mlp(MLP* mlp) {
         free_mat(mlp->weight_derivatives[i]);
         free_mat(mlp->weight_deltas[i]);
 
+        free_mat(mlp->first_momentum[i]);
+        free_mat(mlp->second_momentum[i]);
+        free_mat(mlp->first_momentum_estimate[i]);
+        free_mat(mlp->second_momentum_estimate[i]);
+
         free_mat(mlp->inner_potentials[i]);
         free_mat(mlp->neuron_outputs[i]);
 
@@ -79,6 +96,11 @@ void free_mlp(MLP* mlp) {
     free(mlp->weights);
     free(mlp->inner_potentials);
     free(mlp->neuron_outputs);
+
+    free(mlp->first_momentum);
+    free(mlp->second_momentum);
+    free(mlp->first_momentum_estimate);
+    free(mlp->second_momentum_estimate);
 
     free(mlp->error_derivatives - 1);  // :D
     free(mlp->activation_derivatives);
@@ -214,6 +236,7 @@ void multiply_deltas_by(MLP* mlp, double factor) {
     }
 }
 
+
 void gradient_descent(MLP *mlp, double learning_rate, int batch_size, double alpha) {
     // TODO use better techniques (adaptive learning rate, momentum, ...)
     for (int k = 0; k <= mlp->num_hidden_layers; k++) {
@@ -228,11 +251,62 @@ void gradient_descent(MLP *mlp, double learning_rate, int batch_size, double alp
     multiply_deltas_by(mlp, alpha);
 }
 
+void gradient_descent_adam(MLP *mlp, double learning_rate, int time_step, double beta1, double beta2) {
+    double epsilon = 0.00000001;  // for corection of division by 0
+
+    // TODO: exchange multiple applications of the functions on matricies by one cycle
+    for (int k = 0; k <= mlp->num_hidden_layers; k++) {
+//print_matrices(&(mlp->weight_derivatives[k]), 1);
+        // Update biased first moment estimate
+        multiply_scalar_mat(mlp->first_momentum[k], beta1, mlp->first_momentum[k]);
+        multiply_scalar_mat(mlp->weight_derivatives[k], 1 - beta1, mlp->weight_deltas[k]);
+        add_mat(mlp->weight_deltas[k], mlp->first_momentum[k], mlp->first_momentum[k]);
+//print_matrices(&(mlp->first_momentum[k]), 1);
+        // Update biased second raw moment estimate
+        multiply_scalar_mat(mlp->second_momentum[k], beta2, mlp->second_momentum[k]);
+        elem_multiply_mat(mlp->weight_derivatives[k], mlp->weight_derivatives[k], mlp->weight_deltas[k]);
+        multiply_scalar_mat(mlp->weight_deltas[k], 1 - beta2, mlp->weight_deltas[k]);
+        add_mat(mlp->weight_deltas[k], mlp->second_momentum[k], mlp->second_momentum[k]);
+//print_matrices(&(mlp->second_momentum[k]), 1);
+        // Compute bias-corrected first moment estimate
+        multiply_scalar_mat(mlp->first_momentum[k], 1 / (1 - pow(beta1, time_step)), mlp->first_momentum_estimate[k]);
+//print_matrices(&(mlp->first_momentum_estimate[k]), 1);
+        // Compute bias-corrected second raw moment estimate
+        multiply_scalar_mat(mlp->second_momentum[k], 1 / (1 - pow(beta2, time_step)), mlp->second_momentum_estimate[k]);
+//print_matrices(&(mlp->second_momentum_estimate[k]), 1);
+        // Update weights
+        apply_func_mat(mlp->second_momentum_estimate[k], mlp->second_momentum_estimate[k],  sqrt, false);
+        add_scalar_mat(mlp->second_momentum_estimate[k], epsilon, mlp->second_momentum_estimate[k]);
+//print_matrices(&(mlp->second_momentum_estimate[k]), 1);
+        multiply_scalar_mat(mlp->first_momentum_estimate[k], learning_rate, mlp->first_momentum_estimate[k]);
+//print_matrices(&(mlp->first_momentum_estimate[k]), 1);
+//print_matrices(&(mlp->second_momentum_estimate[k]), 1);
+        elem_divide_mat(mlp->first_momentum_estimate[k], mlp->second_momentum_estimate[k], mlp->weight_deltas[k]);
+
+//print_matrices(&(mlp->weight_deltas[k]), 1);
+
+        subtract_mat(mlp->weights[k], mlp->weight_deltas[k], mlp->weights[k]);
+//print_matrices(&(mlp->weights[k]), 1);
+    }
+
+}
+
 void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[],
            double learning_rate, int num_batches, int batch_size, double alpha) {
     // input_data[0] must be 1
-    multiply_derivatives_by(mlp, 0.0);
-    multiply_deltas_by(mlp, 0.0);
+    // init to 0, TODO: do within allocation ?
+    for (int k = 0; k <= mlp->num_hidden_layers; k++) {
+        multiply_scalar_mat(mlp->weight_deltas[k], 0.0, mlp->weight_deltas[k]);
+        multiply_scalar_mat(mlp->weight_derivatives[k], 0.0, mlp->weight_derivatives[k]);
+        multiply_scalar_mat(mlp->first_momentum[k], 0.0, mlp->first_momentum[k]);
+        multiply_scalar_mat(mlp->second_momentum[k], 0.0, mlp->second_momentum[k]);
+        multiply_scalar_mat(mlp->first_momentum_estimate[k], 0.0, mlp->first_momentum_estimate[k]);
+        multiply_scalar_mat(mlp->second_momentum_estimate[k], 0.0, mlp->second_momentum_estimate[k]);
+    }
+
+    int t = 1;
+    double beta1 = 0.9;
+    double beta2 = 0.999;
 
     for (int batch = 0; batch < num_batches; batch++) {
         for (int i = 0; i < batch_size; i++) {
@@ -243,8 +317,9 @@ void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[
             backpropagate(mlp, input_data[data_i], target_data[data_i]);
 // print_matrices(mlp->weight_derivatives, mlp->num_hidden_layers + 1);
         }
-
-        gradient_descent(mlp, learning_rate, batch_size, alpha);
+        //gradient_descent(mlp, learning_rate, batch_size, alpha);
+        gradient_descent_adam(mlp, learning_rate, t, beta1, beta2);
+        t++;
 
 // print_matrices(mlp->weights, mlp->num_hidden_layers + 1);
     }
