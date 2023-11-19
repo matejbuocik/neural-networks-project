@@ -27,6 +27,7 @@ typedef struct {
     Matrix** error_derivatives;         /* Array of error function partial derivatives by neuron outputs (transponed) */
     Matrix** activation_derivatives;    /* Array of activation function derivatives vectors (transponed) */
     Matrix** weight_derivatives;        /* Array of error function partial derivatives by weights vectors */
+    Matrix** weight_deltas;
 } MLP;
 
 /* Create a MLP */
@@ -47,6 +48,8 @@ void backpropagate(MLP* mlp, Matrix *input, Matrix *target_output);
 
 /* Set error function partial derivatives by weights to zero */
 void multiply_derivatives_by(MLP* mlp, double factor);
+
+void multiply_deltas_by(MLP* mlp, double factor);
 
 /* Update the weights */
 void gradient_descent(MLP *mlp, double learning_rate, int batch_size, double aplha);

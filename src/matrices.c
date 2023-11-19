@@ -84,7 +84,7 @@ void multiply_scalar_mat(const Matrix* mat1, double fact, const Matrix* result) 
         }
     }
 }
-
+// TODO: maybe use macro for the repeating cycles
 void subtract_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out) {
     int rows = mat1->rows;
     int cols = mat1->cols;
@@ -92,6 +92,17 @@ void subtract_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out) {
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             out->data[i][j] = mat1->data[i][j] - mat2->data[i][j];
+        }
+    }
+}
+
+void add_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out) {
+    int rows = mat1->rows;
+    int cols = mat1->cols;
+
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            out->data[i][j] = mat1->data[i][j] + mat2->data[i][j];
         }
     }
 }

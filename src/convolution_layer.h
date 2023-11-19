@@ -27,6 +27,7 @@ typedef struct {
     Matrix** error_derivatives;         /* Array of error function partial derivatives by neuron outputs (transponed) */
     Matrix** activation_derivatives;    /* Array of activation function derivatives vectors (transponed) */
     Matrix** weight_derivatives;        /* Array of error function partial derivatives by weights vectors */
+    Matrix** weight_deltas;
 
     MLP* mlp;
 } ConLayer;

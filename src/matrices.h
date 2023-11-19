@@ -37,6 +37,8 @@ void multiply_scalar_mat(const Matrix* mat, double fact, const Matrix* out);
 /* Subtract two matrices, store result in `out`*/
 void subtract_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out);
 
+void add_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out);
+
 /* Multiply two matrices, only by elements, store result in `result` */
 void elem_multiply_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* result);
 

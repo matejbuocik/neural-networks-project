@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
     char *test_outputs_path = "data/fashion_mnist_test_labels.csv";
 
     double learning_rate = 0.001;
-    double alpha = 0.1;
+    double alpha = 0.95;
     int num_batches = 37500;
     int batch_size = 16;
 
@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
     //print_matrices(inputs_array, in_n);
     //print_matrices(outputs_array, in_n);
 
-    int hidden_layer_sizes[2] = {256, 64};
+    int hidden_layer_sizes[2] = {250, 50};
     func_ptr activation_funs[3] = {&ReLU, &ReLU, &softmax};
     func_ptr activation_funs_der[3] = {&ReLU_der, &ReLU_der, &softmax_der};
 

@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
     //print_matrices(inputs_array, in_n);
     //print_matrices(outputs_array, in_n);
 
-    int hidden_layer_sizes[2] = {256, 64};
+    int hidden_layer_sizes[2] = {264, 64};
     func_ptr activation_funs[3] = {&ReLU, &ReLU, &softmax};
     func_ptr activation_funs_der[3] = {&ReLU_der, &ReLU_der, &softmax_der};
 

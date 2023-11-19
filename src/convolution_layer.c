@@ -24,11 +24,13 @@ ConLayer create_con_layer(int input_width, int input_height, int num_feature_map
     convl.neuron_outputs          = (Matrix**) malloc((num_feature_maps) * sizeof(Matrix*));
     convl.error_derivatives       = (Matrix**) malloc((num_feature_maps) * sizeof(Matrix*));
     convl.weight_derivatives      = (Matrix**) malloc((num_feature_maps) * sizeof(Matrix*));
+    convl.weight_deltas           = (Matrix**) malloc((num_feature_maps) * sizeof(Matrix*));
 
     // initialize allocated arrays
     for (int i = 0; i < num_feature_maps; i++) {
         convl.weights[i] = create_mat(kernel_size, kernel_size);
         convl.weight_derivatives[i] = create_mat(kernel_size, kernel_size);
+        convl.weight_deltas[i] = create_mat(kernel_size, kernel_size);
 
         convl.inner_potentials[i] = create_mat(1, neurons_in_feat_map);
         convl.neuron_outputs[i] = create_mat(1, neurons_in_feat_map);
@@ -48,6 +50,7 @@ void free_con_layer(ConLayer* conl) {
     for (int i = 0; i < conl->num_feature_maps; i++) {
         free_mat(conl->weights[i]);
         free_mat(conl->weight_derivatives[i]);
+        free_mat(conl->weight_deltas[i]);
 
         free_mat(conl->inner_potentials[i]);
         free_mat(conl->neuron_outputs[i]);
@@ -62,6 +65,7 @@ void free_con_layer(ConLayer* conl) {
 
     free(conl->error_derivatives);
     free(conl->weight_derivatives);
+    free(conl->weight_deltas);
 
     free(conl->output);
     free(conl->potential);
@@ -210,12 +214,12 @@ void backprop(ConLayer *conl, Matrix *input, Matrix *target_output) {
                     }
                 }
 
-                conl->weight_derivatives[mask_i]->data[off_y][off_x] = der;
+                conl->weight_derivatives[mask_i]->data[off_y][off_x] += der;
             }
         }
     }
 
-
+//print_matrices(conl->weight_derivatives, conl->num_feature_maps);
 }
 
 
@@ -223,23 +227,34 @@ void multiply_ders_by(ConLayer* conl, double factor) {
     for (int k = 0; k < conl->num_feature_maps; k++) {
         multiply_scalar_mat(conl->weight_derivatives[k], factor, conl->weight_derivatives[k]);
     }
+}
 
-    multiply_derivatives_by(conl->mlp, factor);
+void multiply_delts_by(ConLayer* conl, double factor) {
+    for (int k = 0; k < conl->num_feature_maps; k++) {
+        multiply_scalar_mat(conl->weight_deltas[k], factor, conl->weight_deltas[k]);
+    }
 }
 
 
 void grad_des(ConLayer* conl, double learning_rate, int batch_size, double alpha) {
     // TODO use better techniques (adaptive learning rate, momentum, ...)
+    // TODO: get rid of the * 10 with better techniques :D
     for (int k = 0; k < conl->num_feature_maps; k++) {
-        multiply_scalar_mat(conl->weight_derivatives[k], -learning_rate / batch_size, conl->weight_derivatives[k]);
-        subtract_mat(conl->weights[k], conl->weight_derivatives[k], conl->weights[k]);
+        multiply_scalar_mat(conl->weight_derivatives[k], -(learning_rate * 10) / batch_size, conl->weight_derivatives[k]);
+        add_mat(conl->weight_derivatives[k], conl->weight_deltas[k], conl->weight_deltas[k]);
+
+        subtract_mat(conl->weights[k], conl->weight_deltas[k], conl->weights[k]);
     }
 
     gradient_descent(conl->mlp, learning_rate, batch_size, alpha);
 
-// print_matrices(mlp->weights, mlp->num_hidden_layers + 1);
-// print_matrices(mlp->weight_derivatives, mlp->num_hidden_layers + 1);
-    multiply_ders_by(conl, alpha);
+// print_matrices(conl->weights, conl->num_feature_maps);
+// print_matrices(conl->weight_deltas, conl->num_feature_maps);
+
+    multiply_ders_by(conl, 0.0);
+    multiply_delts_by(conl, alpha);
+
+//print_matrices(conl->weight_derivatives, conl->num_feature_maps);
 }
 
 
@@ -247,6 +262,10 @@ void train_con(ConLayer *conl, int num_samples, Matrix *input_data[], Matrix *ta
            double learning_rate, int num_batches, int batch_size, double alpha) {
     // input_data[0] must be 1
     multiply_ders_by(conl, 0.0);
+    multiply_delts_by(conl, 0.0);
+    // init mlp as well
+    multiply_derivatives_by(conl->mlp, 0.0);
+    multiply_deltas_by(conl->mlp, 0.0);
 
     for (int batch = 0; batch < num_batches; batch++) {
         for (int i = 0; i < batch_size; i++) {

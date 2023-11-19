@@ -27,6 +27,7 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
     mlp.error_derivatives[-1] = create_mat(input_size, 1);
     mlp.activation_derivatives  = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
     mlp.weight_derivatives      = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
+    mlp.weight_deltas           = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
 
     // initialize allocated arrays
     int i;
@@ -43,6 +44,7 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
 
         mlp.weights[i] = create_mat(rows, cols);
         mlp.weight_derivatives[i] = create_mat(rows, cols);
+        mlp.weight_deltas[i] = create_mat(rows, cols);
 
         mlp.inner_potentials[i] = create_mat(1, cols);
         mlp.neuron_outputs[i] = create_mat(1, cols + plus_one_output_col);  // First one will always be one (input for bias)
@@ -62,6 +64,7 @@ void free_mlp(MLP* mlp) {
     for (int i = 0; i <= mlp->num_hidden_layers; i++) {
         free_mat(mlp->weights[i]);
         free_mat(mlp->weight_derivatives[i]);
+        free_mat(mlp->weight_deltas[i]);
 
         free_mat(mlp->inner_potentials[i]);
         free_mat(mlp->neuron_outputs[i]);
@@ -80,6 +83,7 @@ void free_mlp(MLP* mlp) {
     free(mlp->error_derivatives - 1);  // :D
     free(mlp->activation_derivatives);
     free(mlp->weight_derivatives);
+    free(mlp->weight_deltas);
 }
 
 void initialize_weights(MLP* mlp, int seed) {
@@ -204,21 +208,31 @@ void multiply_derivatives_by(MLP* mlp, double factor) {
     }
 }
 
-void gradient_descent(MLP *mlp, double learning_rate, int batch_size, double aplha) {
+void multiply_deltas_by(MLP* mlp, double factor) {
+    for (int k = 0; k <= mlp->num_hidden_layers; k++) {
+        multiply_scalar_mat(mlp->weight_deltas[k], factor, mlp->weight_deltas[k]);
+    }
+}
+
+void gradient_descent(MLP *mlp, double learning_rate, int batch_size, double alpha) {
     // TODO use better techniques (adaptive learning rate, momentum, ...)
     for (int k = 0; k <= mlp->num_hidden_layers; k++) {
         multiply_scalar_mat(mlp->weight_derivatives[k], -learning_rate / batch_size, mlp->weight_derivatives[k]);
-        subtract_mat(mlp->weights[k], mlp->weight_derivatives[k], mlp->weights[k]);
+        add_mat(mlp->weight_derivatives[k], mlp->weight_deltas[k], mlp->weight_deltas[k]);
+
+        subtract_mat(mlp->weights[k], mlp->weight_deltas[k], mlp->weights[k]);
     }
-// print_matrices(mlp->weights, mlp->num_hidden_layers + 1);
-// print_matrices(mlp->weight_derivatives, mlp->num_hidden_layers + 1);
-    multiply_derivatives_by(mlp, aplha);
+// print_matrices(&(mlp->weights[mlp->num_hidden_layers]), 1);
+// print_matrices(&(mlp->weight_deltas[mlp->num_hidden_layers]), 1);
+    multiply_derivatives_by(mlp, 0); // zero out for next batch
+    multiply_deltas_by(mlp, alpha);
 }
 
 void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[],
            double learning_rate, int num_batches, int batch_size, double alpha) {
     // input_data[0] must be 1
     multiply_derivatives_by(mlp, 0.0);
+    multiply_deltas_by(mlp, 0.0);
 
     for (int batch = 0; batch < num_batches; batch++) {
         for (int i = 0; i < batch_size; i++) {
