@@ -27,15 +27,16 @@ int main(int argc, char *argv[]) {
     char *test_inputs_path = "data/fashion_mnist_test_vectors.csv";
     char *test_outputs_path = "data/fashion_mnist_test_labels.csv";
 
-    double learning_rate = 0.01;
+    double learning_rate = 0.001;
     double alpha = 0.1;
-    int num_batches = 10000;
+    int num_batches = 37500;
     int batch_size = 16;
 
 
     // Parse args
     struct option longopts[] = {
         {"rate", 1, NULL, 'r'},
+        {"momentum", 1, NULL, 'a'},
         {"num-batches", 1, NULL, 'n'},
         {"batch-size", 1, NULL, 's'},
         {"input-weights", 1, NULL, 'i'},
@@ -45,12 +46,19 @@ int main(int argc, char *argv[]) {
     };
     int opt;
     char *endptr;
-    while ((opt = getopt_long(argc, argv, "r:n:s:i:o:h:a", longopts, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "r:a:n:s:i:o:h", longopts, NULL)) != -1) {
         switch (opt) {
             case 'r':  // learning rate
                 learning_rate = strtod(optarg, &endptr);
                 if (endptr == optarg) {
                     fprintf(stderr, "learning_rate: Parse error\n");
+                    exit(1);
+                }
+                break;
+            case 'a':  // alpha for momentum
+                alpha = strtod(optarg, &endptr);
+                if (endptr == optarg) {
+                    fprintf(stderr, "alpha: Parse error\n");
                     exit(1);
                 }
                 break;
@@ -65,13 +73,6 @@ int main(int argc, char *argv[]) {
                 batch_size = strtol(optarg, &endptr, 10);
                 if (endptr == optarg) {
                     fprintf(stderr, "batch_size: Parse error\n");
-                    exit(1);
-                }
-                break;
-            case 'a':  // alpha for momentum
-                alpha = strtod(optarg, &endptr);
-                if (endptr == optarg) {
-                    fprintf(stderr, "alpha: Parse error\n");
                     exit(1);
                 }
                 break;
@@ -123,6 +124,8 @@ int main(int argc, char *argv[]) {
     init_weights(&conl, 42);
 
     train_con(&conl, train_in_n, train_inputs, train_outputs, learning_rate, num_batches, batch_size, alpha);
+
+print_matrices(conl.weights, conl.num_feature_maps);
 
     // free train inputs and outputs
     for (int i = 0; i < train_in_n; i++) {

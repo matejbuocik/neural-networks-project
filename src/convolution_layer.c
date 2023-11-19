@@ -1,4 +1,5 @@
 #include "convolution_layer.h"
+#include "parse_csv.h"
 
 
 ConLayer create_con_layer(int input_width, int input_height, int num_feature_maps, int kernel_size, int pool_size,
@@ -99,11 +100,11 @@ Matrix *fwd_pass(ConLayer *conl, Matrix *input) {
                         int in_x = out_x + x_offset;
                         int in_y = out_y + y_offset;
 
-                        int input_index = in_y * conl->input_width + in_x + 1;
+                        int input_index = in_y * conl->input_width + in_x + 1; // ignore initial 1
                         double weight = conl->weights[map_i]->data[y_offset][x_offset];
                         double input_data = input->data[0][input_index];
 
-                        inner_potential += weight * input_data; // ignore initial 1
+                        inner_potential += weight * input_data;
                     }
                 }
 
@@ -124,7 +125,7 @@ Matrix *fwd_pass(ConLayer *conl, Matrix *input) {
                 int out_index = map_i * width * height + out_y * width + out_x;
 
                 // det initial max value
-                int max_i = out_y * f_map_w + out_x * conl->pool_size;
+                int max_i = out_y * conl->pool_size * f_map_w + out_x * conl->pool_size;
                 double max = conl->neuron_outputs[map_i]->data[0][max_i];
                 conl->error_derivatives[map_i]->data[max_i][0] = out_index;
 
@@ -132,12 +133,17 @@ Matrix *fwd_pass(ConLayer *conl, Matrix *input) {
                     for (int y_offset = 0; y_offset < conl->pool_size; y_offset++) {
                         int in_x = out_x * conl->pool_size + x_offset;
                         int in_y = out_y * conl->pool_size + y_offset;
+                        int in_1d = in_y * f_map_w + in_x;
+                        // -1 indicates, that this value was not the max
+                        if (in_1d != max_i) { // do not overwrite the value set earlier
+                            conl->error_derivatives[map_i]->data[in_1d][0] = -1;
+                        }
 
-                        if (conl->neuron_outputs[map_i]->data[0][in_y * f_map_w + in_x] > max) {
+                        if (conl->neuron_outputs[map_i]->data[0][in_1d] > max) {
                             // neuron value corrresponding to max_i was not he maximum,
                             // so the derivative will be 0, this is indicated by the -1 index
                             conl->error_derivatives[map_i]->data[max_i][0] = -1;
-                            max_i = in_y * f_map_w + in_x;
+                            max_i = in_1d;
                             max = conl->neuron_outputs[map_i]->data[0][max_i];
                             conl->error_derivatives[map_i]->data[max_i][0] = out_index;
                         }
@@ -159,18 +165,27 @@ Matrix *fwd_pass(ConLayer *conl, Matrix *input) {
 void backprop(ConLayer *conl, Matrix *input, Matrix *target_output) {
     backpropagate(conl->mlp, conl->output, target_output);
 
+//print_matrices(&(conl->mlp->error_derivatives[-1]), 1);
+
+//print_matrices(&(conl->potential), 1);
+
     conl->activation_fun_der(conl->potential, conl->error_der);
+
+//print_matrices(&(conl->error_der), 1);
+
     elem_multiply_mat(conl->error_der, conl->mlp->error_derivatives[-1], conl->error_der);
+
+//print_matrices(&(conl->error_der), 1);
 
     for (int mask_i = 0; mask_i < conl->num_feature_maps; mask_i++) {
         // pull derivatives through the max pooling layer
         for (int i = 0; i < conl->neurons_in_feat_map; i++) {
             int index = conl->error_derivatives[mask_i]->data[i][0];
-            
+//print_matrices(&(conl->error_derivatives[mask_i]), 1);
             if (index == -1) {
                 conl->error_derivatives[mask_i]->data[i][0] = 0;
             } else {
-                conl->error_derivatives[mask_i]->data[i][0] = conl->error_der->data[0][index];
+                conl->error_derivatives[mask_i]->data[i][0] = conl->error_der->data[index][0];
             }
         }
 

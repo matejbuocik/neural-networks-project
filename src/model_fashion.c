@@ -75,6 +75,7 @@ int main(int argc, char *argv[]) {
     // Parse args
     struct option longopts[] = {
         {"rate", 1, NULL, 'r'},
+        {"alpha", 1, NULL, 'a'},
         {"num-batches", 1, NULL, 'n'},
         {"batch-size", 1, NULL, 's'},
         {"input-weights", 1, NULL, 'i'},
@@ -84,12 +85,19 @@ int main(int argc, char *argv[]) {
     };
     int opt;
     char *endptr;
-    while ((opt = getopt_long(argc, argv, "r:n:s:i:o:h:a", longopts, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "r:a:n:s:i:o:h", longopts, NULL)) != -1) {
         switch (opt) {
             case 'r':  // learning rate
                 learning_rate = strtod(optarg, &endptr);
                 if (endptr == optarg) {
                     fprintf(stderr, "learning_rate: Parse error\n");
+                    exit(1);
+                }
+                break;
+            case 'a':  // alpha for momentum
+                alpha = strtod(optarg, &endptr);
+                if (endptr == optarg) {
+                    fprintf(stderr, "alpha: Parse error\n");
                     exit(1);
                 }
                 break;
@@ -112,13 +120,6 @@ int main(int argc, char *argv[]) {
                 break;
             case 'o':  // output weights
                 output_weights_path = optarg;
-                break;
-            case 'a':  // alpha for momentum
-                alpha = strtod(optarg, &endptr);
-                if (endptr == optarg) {
-                    fprintf(stderr, "alpha: Parse error\n");
-                    exit(1);
-                }
                 break;
             case 'h':  // help
                 print_help();
@@ -144,7 +145,7 @@ int main(int argc, char *argv[]) {
     //print_matrices(inputs_array, in_n);
     //print_matrices(outputs_array, in_n);
 
-    int hidden_layer_sizes[2] = {128, 32};
+    int hidden_layer_sizes[2] = {256, 64};
     func_ptr activation_funs[3] = {&ReLU, &ReLU, &softmax};
     func_ptr activation_funs_der[3] = {&ReLU_der, &ReLU_der, &softmax_der};
 
