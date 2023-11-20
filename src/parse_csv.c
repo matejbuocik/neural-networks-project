@@ -104,7 +104,7 @@ int parse_csv_vectors(const char* filename, Matrix ***ptr_to_mat_array, int is_i
         if (c == ',' || c == '\n') {
             // Convert the buffer to a double and store it in the matrix
             double value = atof(buffer);
-            set_element((*ptr_to_mat_array)[row], 0, col, value / 255.0);  // normalize fashion input
+            set_element((*ptr_to_mat_array)[row], 0, col, (value / 255.0) -0.5 );  // normalize fashion input
             memset(buffer, 0, sizeof(buffer)); // Clear the buffer
             col++;
 
