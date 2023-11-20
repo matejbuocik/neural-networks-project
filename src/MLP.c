@@ -23,8 +23,8 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
     // the error_derivatives[-1] is added for extensions of the MLP with adding preciding layers
     // in such case this filed is needed for the backpropagation on the whole ensemble
     mlp.error_derivatives       = (Matrix**) malloc((num_hidden_layers + 2) * sizeof(Matrix*));
-    mlp.error_derivatives = mlp.error_derivatives + 1;
-    mlp.error_derivatives[-1] = create_mat(input_size, 1);
+    mlp.error_derivatives       = mlp.error_derivatives + 1;
+    mlp.error_derivatives[-1]   = create_mat(input_size, 1);
     mlp.activation_derivatives  = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
     mlp.weight_derivatives      = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
     mlp.weight_deltas           = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));

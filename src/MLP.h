@@ -60,6 +60,8 @@ void multiply_deltas_by(MLP* mlp, double factor);
 /* Update the weights */
 void gradient_descent(MLP *mlp, double learning_rate, int batch_size, double aplha);
 
+void gradient_descent_adam(MLP *mlp, double learning_rate, int time_step, double beta1, double beta2);
+
 /* Train the MLP */
 void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[],
            double learning_rate, int num_batches, int batch_size, double alpha);

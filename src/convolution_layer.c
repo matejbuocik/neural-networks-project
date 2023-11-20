@@ -25,12 +25,16 @@ ConLayer create_con_layer(int input_width, int input_height, int num_feature_map
     convl.error_derivatives       = (Matrix**) malloc((num_feature_maps) * sizeof(Matrix*));
     convl.weight_derivatives      = (Matrix**) malloc((num_feature_maps) * sizeof(Matrix*));
     convl.weight_deltas           = (Matrix**) malloc((num_feature_maps) * sizeof(Matrix*));
+    convl.first_momentum          = (Matrix**) malloc((num_feature_maps) * sizeof(Matrix*));
+    convl.second_momentum         = (Matrix**) malloc((num_feature_maps) * sizeof(Matrix*));
 
     // initialize allocated arrays
     for (int i = 0; i < num_feature_maps; i++) {
         convl.weights[i] = create_mat(kernel_size, kernel_size);
         convl.weight_derivatives[i] = create_mat(kernel_size, kernel_size);
         convl.weight_deltas[i] = create_mat(kernel_size, kernel_size);
+        convl.first_momentum[i] = create_mat(kernel_size, kernel_size);
+        convl.second_momentum[i] = create_mat(kernel_size, kernel_size);
 
         convl.inner_potentials[i] = create_mat(1, neurons_in_feat_map);
         convl.neuron_outputs[i] = create_mat(1, neurons_in_feat_map);
@@ -51,6 +55,8 @@ void free_con_layer(ConLayer* conl) {
         free_mat(conl->weights[i]);
         free_mat(conl->weight_derivatives[i]);
         free_mat(conl->weight_deltas[i]);
+        free_mat(conl->first_momentum[i]);
+        free_mat(conl->second_momentum[i]);
 
         free_mat(conl->inner_potentials[i]);
         free_mat(conl->neuron_outputs[i]);
@@ -66,6 +72,8 @@ void free_con_layer(ConLayer* conl) {
     free(conl->error_derivatives);
     free(conl->weight_derivatives);
     free(conl->weight_deltas);
+    free(conl->first_momentum);
+    free(conl->second_momentum);
 
     free(conl->output);
     free(conl->potential);
@@ -248,24 +256,66 @@ void grad_des(ConLayer* conl, double learning_rate, int batch_size, double alpha
 
     gradient_descent(conl->mlp, learning_rate, batch_size, alpha);
 
-// print_matrices(conl->weights, conl->num_feature_maps);
-// print_matrices(conl->weight_deltas, conl->num_feature_maps);
-
     multiply_ders_by(conl, 0.0);
     multiply_delts_by(conl, alpha);
+}
 
-//print_matrices(conl->weight_derivatives, conl->num_feature_maps);
+void grad_des_adam(ConLayer* conl, double learning_rate, int time_step, double beta1, double beta2) {
+    // https://arxiv.org/abs/1412.6980
+    double epsilon = 0.00000001;  // for corection of division by 0
+
+    // TODO: exchange multiple applications of the functions on matricies by one cycle
+    for (int k = 0; k < conl->num_feature_maps; k++) {
+        for (int i = 0; i < conl->weights[k]->rows; i++) {
+            for (int j = 0; j < conl->weights[k]->cols; j++) {
+                double der = conl->weight_derivatives[k]->data[i][j];
+        
+                // Update biased first moment estimate
+                double mean = beta1 * conl->first_momentum[k]->data[i][j] + (1 - beta1) * der;
+                conl->first_momentum[k]->data[i][j] = mean;
+                // Update biased second raw moment estimate
+                double var = beta2 * conl->second_momentum[k]->data[i][j] + (1 - beta2) * der * der;
+                conl->second_momentum[k]->data[i][j] = var;
+
+                // Compute bias-corrected first moment estimate
+                double mean_cor = mean / (1 -  pow(beta1, time_step));
+                // Compute bias-corrected second raw moment estimate
+                double var_cor = var / (1 - pow(beta2, time_step));
+
+                // Update weights
+                conl->weights[k]->data[i][j] = conl->weights[k]->data[i][j] + learning_rate * mean_cor / (sqrt(var_cor) + epsilon);
+            }
+        }
+
+    }
+
+    multiply_ders_by(conl, 0);
+
+    gradient_descent_adam(conl->mlp, learning_rate, time_step, beta1, beta2);
 }
 
 
 void train_con(ConLayer *conl, int num_samples, Matrix *input_data[], Matrix *target_data[],
            double learning_rate, int num_batches, int batch_size, double alpha) {
     // input_data[0] must be 1
-    multiply_ders_by(conl, 0.0);
-    multiply_delts_by(conl, 0.0);
+    for (int k = 0; k < conl->num_feature_maps; k++) {
+        multiply_scalar_mat(conl->weight_deltas[k], 0.0, conl->weight_deltas[k]);
+        multiply_scalar_mat(conl->weight_derivatives[k], 0.0, conl->weight_derivatives[k]);
+        multiply_scalar_mat(conl->first_momentum[k], 0.0, conl->first_momentum[k]);
+        multiply_scalar_mat(conl->second_momentum[k], 0.0, conl->second_momentum[k]);
+    }
     // init mlp as well
-    multiply_derivatives_by(conl->mlp, 0.0);
-    multiply_deltas_by(conl->mlp, 0.0);
+    // init to 0, TODO: do within allocation ?
+    for (int k = 0; k <= conl->mlp->num_hidden_layers; k++) {
+        multiply_scalar_mat(conl->mlp->weight_deltas[k], 0.0, conl->mlp->weight_deltas[k]);
+        multiply_scalar_mat(conl->mlp->weight_derivatives[k], 0.0, conl->mlp->weight_derivatives[k]);
+        multiply_scalar_mat(conl->mlp->first_momentum[k], 0.0, conl->mlp->first_momentum[k]);
+        multiply_scalar_mat(conl->mlp->second_momentum[k], 0.0, conl->mlp->second_momentum[k]);
+    }
+
+    int t = 1;
+    double beta1 = 0.9;
+    double beta2 = 0.999;
 
     for (int batch = 0; batch < num_batches; batch++) {
         for (int i = 0; i < batch_size; i++) {
@@ -277,7 +327,10 @@ void train_con(ConLayer *conl, int num_samples, Matrix *input_data[], Matrix *ta
 // print_matrices(mlp->weight_derivatives, mlp->num_hidden_layers + 1);
         }
 
-        grad_des(conl, learning_rate, batch_size, alpha);
+        //grad_des(conl, learning_rate, batch_size, alpha);
+        grad_des_adam(conl, learning_rate, t, beta1, beta2);
+
+        t++;
 
 // print_matrices(mlp->weights, mlp->num_hidden_layers + 1);
     }

@@ -28,6 +28,8 @@ typedef struct {
     Matrix** activation_derivatives;    /* Array of activation function derivatives vectors (transponed) */
     Matrix** weight_derivatives;        /* Array of error function partial derivatives by weights vectors */
     Matrix** weight_deltas;
+    Matrix** first_momentum;
+    Matrix** second_momentum;
 
     MLP* mlp;
 } ConLayer;
