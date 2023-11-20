@@ -33,8 +33,6 @@ typedef struct {
     // Adam
     Matrix** first_momentum;
     Matrix** second_momentum;
-    Matrix** first_momentum_estimate;
-    Matrix** second_momentum_estimate;
      
 } MLP;
 
