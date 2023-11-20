@@ -126,7 +126,7 @@ void initialize_weights(MLP* mlp, int seed) {
         for (int j = 0; j < mlp->weights[i]->rows; j++) {
             for (int k = 0; k < mlp->weights[i]->cols; k++) {
                 double random_val = generator(arg1, arg2);
-                set_element(mlp->weights[i], j, k, random_val);
+                mlp->weights[i]->data[j][k] = random_val;
             }
         }
     }
@@ -206,11 +206,11 @@ void backpropagate(MLP *mlp, Matrix *input, Matrix *target_output) {
     for (int k = 0; k <= last; k++) {
         for (int i = 0; i < mlp->weight_derivatives[k]->rows; i++) {
             for (int j = 0; j < mlp->weight_derivatives[k]->cols; j++) {
-                double grad = get_element(mlp->weight_derivatives[k], i, j);
+                double grad = mlp->weight_derivatives[k]->data[i][j];
                 // compute derivative
                 Matrix* neuron_vals = (k == 0) ? input : mlp->neuron_outputs[k - 1];
-                grad += get_element(mlp->error_derivatives[k], j, 0) * get_element(neuron_vals, 0, i);
-                set_element(mlp->weight_derivatives[k], i, j, grad);
+                grad += mlp->error_derivatives[k]->data[j][0] * neuron_vals->data[0][i];
+                mlp->weight_derivatives[k]->data[i][j] = grad;
             }
         }
     }

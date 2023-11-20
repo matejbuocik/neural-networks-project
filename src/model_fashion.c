@@ -15,7 +15,7 @@ void save_weights(MLP *mlp, const char *filename) {
     for (int i = 0; i <= mlp->num_hidden_layers; i++) {
         for (int row = 0; row < mlp->weights[i]->rows; row++) {
             for (int col = 0; col < mlp->weights[i]->cols; col++) {
-                fprintf(file, "%lf ", get_element(mlp->weights[i], row, col));
+                fprintf(file, "%lf ", mlp->weights[i]->data[row][col]);
             }
             fprintf(file, "\n");
         }
@@ -35,7 +35,7 @@ void load_weights(MLP *mlp, const char *filename) {
         for (int row = 0; row < mlp->weights[i]->rows; row++) {
             for (int col = 0; col < mlp->weights[i]->cols; col++) {
                 fscanf(file, "%lf ", &weight);
-                set_element(mlp->weights[i], row, col, weight);
+                mlp->weights[i]->data[row][col] = weight;
             }
             fscanf(file, "\n");
         }

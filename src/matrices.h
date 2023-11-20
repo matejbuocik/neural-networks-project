@@ -19,12 +19,6 @@ Matrix *create_mat(int rows, int cols);
 /* Free memory used by Matrix*/
 void free_mat(Matrix* mat);
 
-/* Set element at a given position to value */
-void set_element(Matrix* mat, int row, int col, double value);
-
-/* Get element at a given position */
-double get_element(const Matrix* mat, int row, int col);
-
 /* Multiply two matrices, store result in `out`*/
 void multiply_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out, bool back_prop);
 

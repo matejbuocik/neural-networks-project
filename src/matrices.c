@@ -24,14 +24,6 @@ void free_mat(Matrix* mat) {
     free(mat);
 }
 
-void set_element(Matrix* mat, int row, int col, double value) {
-    mat->data[row][col] = value;
-}
-
-double get_element(const Matrix* mat, int row, int col) {
-    return mat->data[row][col];
-}
-
 void multiply_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out, bool back_prop) {
     int rows1 = mat1->rows;
     int cols1 = mat1->cols;
