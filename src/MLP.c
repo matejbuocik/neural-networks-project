@@ -240,13 +240,14 @@ void multiply_deltas_by(MLP* mlp, double factor) {
 void gradient_descent(MLP *mlp, double learning_rate, int batch_size, double alpha) {
     // TODO use better techniques (adaptive learning rate, momentum, ...)
     for (int k = 0; k <= mlp->num_hidden_layers; k++) {
+//print_matrices(&(mlp->weight_derivatives[k]), 1);
         multiply_scalar_mat(mlp->weight_derivatives[k], -learning_rate / batch_size, mlp->weight_derivatives[k]);
         add_mat(mlp->weight_derivatives[k], mlp->weight_deltas[k], mlp->weight_deltas[k]);
 
         subtract_mat(mlp->weights[k], mlp->weight_deltas[k], mlp->weights[k]);
     }
-// print_matrices(&(mlp->weights[mlp->num_hidden_layers]), 1);
-// print_matrices(&(mlp->weight_deltas[mlp->num_hidden_layers]), 1);
+//print_matrices(&(mlp->weights[mlp->num_hidden_layers]), 1);
+//print_matrices(&(mlp->weight_deltas[mlp->num_hidden_layers]), 1);
     multiply_derivatives_by(mlp, 0); // zero out for next batch
     multiply_deltas_by(mlp, alpha);
 }
@@ -285,10 +286,11 @@ void gradient_descent_adam(MLP *mlp, double learning_rate, int time_step, double
 
 //print_matrices(&(mlp->weight_deltas[k]), 1);
 
-        subtract_mat(mlp->weights[k], mlp->weight_deltas[k], mlp->weights[k]);
+        add_mat(mlp->weights[k], mlp->weight_deltas[k], mlp->weights[k]);
 //print_matrices(&(mlp->weights[k]), 1);
     }
-
+//print_matrices(&(mlp->weights[mlp->num_hidden_layers]), 1);
+    multiply_derivatives_by(mlp, 0);
 }
 
 void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[],
