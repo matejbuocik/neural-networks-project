@@ -14,7 +14,6 @@ typedef void (*func_ptr)(const Matrix *, const Matrix *);
 typedef struct {
     /* Set on start */
     int num_hidden_layers;              /* Number of hidden layers */
-    int* layers_sizes;
     func_ptr* activation_functions;     /* Array of activation functions */
     func_ptr* activation_funs_der;      /* Array of derived activation functions */
 

@@ -15,8 +15,6 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
     mlp.activation_funs_der = activation_funs_der;
 
     // allocate memory for arrays
-    mlp.layers_sizes     = (int *) malloc((num_hidden_layers + 2) * sizeof(int));
-
     mlp.weights                 = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
     mlp.inner_potentials        = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
     mlp.neuron_outputs          = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
@@ -61,12 +59,7 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
         mlp.neuron_outputs[i] = create_mat(1, cols + plus_one_output_col);  // First one will always be one (input for bias)
         mlp.error_derivatives[i] = create_mat(cols, 1);
         mlp.activation_derivatives[i] = create_mat(cols, 1);
-
-        mlp.layers_sizes[i + 1] = hidden_layer_sizes[i];
     }
-
-    mlp.layers_sizes[0] = input_size;
-    mlp.layers_sizes[i] = output_size; // i == num_hidden_layers + 1
 
     return mlp;
 }
@@ -88,8 +81,6 @@ void free_mlp(MLP* mlp) {
 
     }
 
-    free(mlp->layers_sizes);
-
     free(mlp->weights);
     free(mlp->inner_potentials);
     free(mlp->neuron_outputs);
@@ -107,8 +98,8 @@ void initialize_weights(MLP* mlp, int seed) {
     srand(seed);
 
     for (int i = 0; i <= mlp->num_hidden_layers; i++) {
-        int input_size = mlp->layers_sizes[i];
-        int output_size = mlp->layers_sizes[i + 1];
+        int input_size = mlp->weights[i]->rows - 1;  // do not count bias input neuron
+        int output_size = mlp->weights[i]->cols;
 
         double (*generator)(double, double);
         double arg1, arg2;
