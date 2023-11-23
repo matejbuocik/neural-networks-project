@@ -101,8 +101,9 @@ void initialize_weights(MLP* mlp, int seed) {
         int input_size = mlp->weights[i]->rows - 1;  // do not count bias input neuron
         int output_size = mlp->weights[i]->cols;
 
-        double (*generator)(double, double);
-        double arg1, arg2;
+        double (*generator)(double, double) = NULL;
+        double arg1 = 0.0;
+        double arg2 = 0.0;
 
         if (mlp->activation_functions[i] == &ReLU) {
             // normal He
