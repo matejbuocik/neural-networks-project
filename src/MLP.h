@@ -28,12 +28,12 @@ typedef struct {
     Matrix** activation_derivatives;    /* Array of activation function derivatives vectors (transponed) */
     Matrix** weight_derivatives;        /* Array of error function partial derivatives by weights vectors */
 
-    Matrix** weight_deltas;
+    Matrix** weight_deltas;             /* Momentum of weight derivatives */
 
     // Adam
     Matrix** first_momentum;
     Matrix** second_momentum;
-     
+
 } MLP;
 
 /* Create a MLP */
@@ -52,14 +52,10 @@ Matrix *forward_pass(MLP* mlp, Matrix *input);
 /* Compute error function partial derivatives by weights */
 void backpropagate(MLP* mlp, Matrix *input, Matrix *target_output);
 
-/* Set error function partial derivatives by weights to zero */
-void multiply_derivatives_by(MLP* mlp, double factor);
-
-void multiply_deltas_by(MLP* mlp, double factor);
-
 /* Update the weights */
 void gradient_descent(MLP *mlp, double learning_rate, int batch_size, double aplha);
 
+/* Update the weights using Adam algorithm */
 void gradient_descent_adam(MLP *mlp, double learning_rate, int time_step, double beta1, double beta2);
 
 /* Train the MLP */
