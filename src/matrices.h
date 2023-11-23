@@ -33,12 +33,8 @@ void subtract_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out);
 
 void add_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out);
 
-void add_scalar_mat(const Matrix* mat1, double member, const Matrix* out);
-
 /* Multiply two matrices, only by elements, store result in `result` */
 void elem_multiply_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* result);
-
-void elem_divide_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* result);
 
 /* Subtract two matrices, create a new one for result*/
 Matrix *sub_mat(const Matrix* mat1, const Matrix* mat2);
@@ -48,11 +44,5 @@ double sum_mat(Matrix *mat);
 
 /* Transpose matrix, return a new one */
 Matrix *transpose_mat(const Matrix* input);
-
-/* Create matrix from an array, containing rows * cols elements */
-Matrix *mat_from_array(int rows, int cols, double* array);
-
-/* Copy matrix into a new one */
-Matrix *copy_mat(Matrix* mat);
 
 #endif
