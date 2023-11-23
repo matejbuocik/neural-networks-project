@@ -66,8 +66,8 @@ int main(int argc, char *argv[]) {
 
     double learning_rate = 0.001;
     double alpha = 0.1;
-    int num_batches = 10000;
-    int batch_size = 16;
+    int num_batches = 2500;
+    int batch_size = 128;
 
     char *input_weights_path = NULL;
     char *output_weights_path = NULL;
@@ -141,9 +141,6 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Input count is different than output count\n");
         exit(1);
     }
-
-    //print_matrices(inputs_array, in_n);
-    //print_matrices(outputs_array, in_n);
 
     int hidden_layer_sizes[2] = {256, 64};
     func_ptr activation_funs[3] = {&ReLU, &ReLU, &softmax};
