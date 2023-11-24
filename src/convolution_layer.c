@@ -88,7 +88,7 @@ void init_weights(ConLayer* conl, int seed) {
         for (int j = 0; j < conl->weights[i]->rows; j++) {
             for (int k = 0; k < conl->weights[i]->cols; k++) {
                 double random_val = generate_normal_random(0.0, 1.0);
-                set_element(conl->weights[i], j, k, random_val);
+                conl->weights[i]->data[j][k] = random_val;
             }
         }
     }
@@ -269,7 +269,7 @@ void grad_des_adam(ConLayer* conl, double learning_rate, int time_step, double b
         for (int i = 0; i < conl->weights[k]->rows; i++) {
             for (int j = 0; j < conl->weights[k]->cols; j++) {
                 double der = conl->weight_derivatives[k]->data[i][j];
-        
+
                 // Update biased first moment estimate
                 double mean = beta1 * conl->first_momentum[k]->data[i][j] + (1 - beta1) * der;
                 conl->first_momentum[k]->data[i][j] = mean;

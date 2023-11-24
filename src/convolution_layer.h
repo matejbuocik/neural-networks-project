@@ -42,8 +42,6 @@ void free_con_layer(ConLayer* conl);
 
 void init_weights(ConLayer* conl, int seed);
 
-void init_weights(ConLayer* conl, int seed);
-
 Matrix *fwd_pass(ConLayer *conl, Matrix *input);
 
 void backprop(ConLayer *conl, Matrix *input, Matrix *target_output);
