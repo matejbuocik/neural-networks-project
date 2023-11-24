@@ -1,52 +1,15 @@
 #include "parse_csv.h"
-#include "MLP.h"
+#include "convolution_layer.h"
 #include "activation_functions.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <getopt.h>
 
-void save_weights(MLP *mlp, const char *filename) {
-    FILE* file = fopen(filename, "w");
-    if (!file) {
-        perror("save_weights - Failed to open weights save file");
-        exit(1);
-    }
-
-    for (int i = 0; i <= mlp->num_hidden_layers; i++) {
-        for (int row = 0; row < mlp->weights[i]->rows; row++) {
-            for (int col = 0; col < mlp->weights[i]->cols; col++) {
-                fprintf(file, "%lf ", mlp->weights[i]->data[row][col]);
-            }
-            fprintf(file, "\n");
-        }
-        fprintf(file, "\n");
-    }
-}
-
-void load_weights(MLP *mlp, const char *filename) {
-    FILE* file = fopen(filename, "r");
-    if (!file) {
-        perror("load_weights - Failed to open file");
-        exit(1);
-    }
-
-    double weight;
-    for (int i = 0; i <= mlp->num_hidden_layers; i++) {
-        for (int row = 0; row < mlp->weights[i]->rows; row++) {
-            for (int col = 0; col < mlp->weights[i]->cols; col++) {
-                fscanf(file, "%lf ", &weight);
-                mlp->weights[i]->data[row][col] = weight;
-            }
-            fscanf(file, "\n");
-        }
-        fscanf(file, "\n");
-    }
-}
 
 extern char *optarg;
 
 void print_help() {
-    printf("MLP\n");
+    printf("CMLP\n");
     printf("   -r --rate\t\tLearning rate (default 0.01)\n");
     printf("   -n --num-batches\tNumber of batches (default 10000)\n");
     printf("   -s --batch-size\tSize of a batch (default 16)\n\n");
@@ -65,17 +28,15 @@ int main(int argc, char *argv[]) {
     char *test_outputs_path = "data/fashion_mnist_test_labels.csv";
 
     double learning_rate = 0.001;
-    double alpha = 0.1;
-    int num_batches = 2500;
-    int batch_size = 128;
+    double alpha = 0.95;
+    int num_batches = 37500;
+    int batch_size = 16;
 
-    char *input_weights_path = NULL;
-    char *output_weights_path = NULL;
 
     // Parse args
     struct option longopts[] = {
         {"rate", 1, NULL, 'r'},
-        {"alpha", 1, NULL, 'a'},
+        {"momentum", 1, NULL, 'a'},
         {"num-batches", 1, NULL, 'n'},
         {"batch-size", 1, NULL, 's'},
         {"input-weights", 1, NULL, 'i'},
@@ -115,12 +76,6 @@ int main(int argc, char *argv[]) {
                     exit(1);
                 }
                 break;
-            case 'i':  // input weights
-                input_weights_path = optarg;
-                break;
-            case 'o':  // output weights
-                output_weights_path = optarg;
-                break;
             case 'h':  // help
                 print_help();
                 exit(0);
@@ -142,12 +97,17 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    //print_matrices(inputs_array, in_n);
+    //print_matrices(outputs_array, in_n);
+
     int hidden_layer_sizes[2] = {256, 64};
     func_ptr activation_funs[3] = {&ReLU, &ReLU, &softmax};
     func_ptr activation_funs_der[3] = {&ReLU_der, &ReLU_der, &softmax_der};
 
-    MLP mlp = create_mlp(test_inputs[0]->cols - 1, test_outputs[0]->cols, 2, hidden_layer_sizes,
+    MLP mlp = create_mlp(16 * 12 * 12, test_outputs[0]->cols, 2, hidden_layer_sizes,
                          activation_funs, activation_funs_der);
+
+    ConLayer conl = create_con_layer(28, 28, 16, 5, 2, ReLU, ReLU_der, &mlp);
 
 
     Matrix** train_inputs;
@@ -161,13 +121,11 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    if (input_weights_path != NULL) {
-        load_weights(&mlp, input_weights_path);
-    } else {
-        initialize_weights(&mlp, 42);
-    }
+    init_weights(&conl, 42);
 
-    train(&mlp, train_in_n, train_inputs, train_outputs, learning_rate, num_batches, batch_size, alpha);
+    train_con(&conl, train_in_n, train_inputs, train_outputs, learning_rate, num_batches, batch_size, alpha);
+
+print_matrices(conl.weights, conl.num_feature_maps);
 
     // free train inputs and outputs
     for (int i = 0; i < train_in_n; i++) {
@@ -178,15 +136,14 @@ int main(int argc, char *argv[]) {
     free(train_outputs);
 
 
-    double test_res = test(&mlp, test_in_n, test_inputs, test_outputs, NULL);
+    double test_res = test_con(&conl, test_in_n, test_inputs, test_outputs, NULL);
     printf("%f\n", test_res);
 
-    if (output_weights_path != NULL) {
-        save_weights(&mlp, output_weights_path);
-    }
 
     // free model
     free_mlp(&mlp);
+
+    free_con_layer(&conl);
 
     // free test inputs and outputs
     for (int i = 0; i < test_in_n; i++) {

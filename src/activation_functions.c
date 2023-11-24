@@ -2,6 +2,36 @@
 #include <assert.h>
 
 
+int get_random_int(int min, int max) {
+    int range = max - min + 1;  // include min and max
+    int random_int = min + rand() % range;
+
+    return random_int;
+}
+
+double mse(Matrix* mat1, Matrix* mat2) {
+    Matrix *sub = sub_mat(mat1, mat2);
+    apply_func_mat(sub, sub, fabs, false);
+
+    double sum = sum_mat(sub);
+    free_mat(sub);
+
+    return sum;
+}
+
+double generate_normal_random(double mean, double variance) {
+    // https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform#References
+    double u1 = ((double)rand() / RAND_MAX);
+    double u2 = ((double)rand() / RAND_MAX);
+    double z0 = sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2);
+
+    return mean + sqrt(variance) * z0;
+}
+
+double generate_uniform(double min_val, double max_val) {
+    return ((double)rand() / RAND_MAX) * (max_val - min_val) + min_val;
+}
+
 double sigmoid_scal(double x) {
     return 1.0 / (1.0 + exp(-x));
 }
@@ -58,5 +88,5 @@ void softmax(const Matrix *in, const Matrix *out) {
 }
 
 void softmax_der(const Matrix *in, const Matrix *out) {
-
+    printf("Not implemented: args[%p, %p]\n", in, out);
 }

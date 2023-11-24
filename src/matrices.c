@@ -1,5 +1,6 @@
 #include "matrices.h"
 #include <assert.h>
+#include <omp.h>
 
 
 Matrix *create_mat(int rows, int cols) {
@@ -24,14 +25,6 @@ void free_mat(Matrix* mat) {
     free(mat);
 }
 
-void set_element(Matrix* mat, int row, int col, double value) {
-    mat->data[row][col] = value;
-}
-
-double get_element(const Matrix* mat, int row, int col) {
-    return mat->data[row][col];
-}
-
 void multiply_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out, bool back_prop) {
     int rows1 = mat1->rows;
     int cols1 = mat1->cols;
@@ -43,12 +36,16 @@ void multiply_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out, boo
         offset = 1;
     }
 
+    #pragma omp parallel for collapse(2)
     for (int i = 0; i < rows1 - offset; i++) {
         for (int j = 0; j < cols2; j++) {
             double sum = 0.0;
+
+            #pragma omp parallel for reduction(+:sum)
             for (int k = 0; k < cols1; k++) {
                 sum += mat1->data[i + offset][k] * mat2->data[k][j];
             }
+
             out->data[i][j] = sum;
         }
     }
@@ -84,7 +81,7 @@ void multiply_scalar_mat(const Matrix* mat1, double fact, const Matrix* result) 
         }
     }
 }
-
+// TODO: maybe use macro for the repeating cycles
 void subtract_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out) {
     int rows = mat1->rows;
     int cols = mat1->cols;
@@ -92,6 +89,17 @@ void subtract_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out) {
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
             out->data[i][j] = mat1->data[i][j] - mat2->data[i][j];
+        }
+    }
+}
+
+void add_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out) {
+    int rows = mat1->rows;
+    int cols = mat1->cols;
+
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            out->data[i][j] = mat1->data[i][j] + mat2->data[i][j];
         }
     }
 }
@@ -133,30 +141,6 @@ Matrix *transpose_mat(const Matrix* input) {
     for (int i = 0; i < input->rows; i++) {
         for (int j = 0; j < input->cols; j++) {
             result->data[j][i] = input->data[i][j];
-        }
-    }
-
-    return result;
-}
-
-Matrix *mat_from_array(int rows, int cols, double* array) {
-    Matrix *mat = create_mat(rows, cols);
-
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            mat->data[i][j] = array[i * cols + j];
-        }
-    }
-
-    return mat;
-}
-
-Matrix *copy_mat(Matrix* mat) {
-    Matrix *result = create_mat(mat->rows, mat->cols);
-
-    for (int i = 0; i < mat->rows; i++) {
-        for (int j = 0; j < mat->cols; j++) {
-            result->data[i][j] = mat->data[i][j];
         }
     }
 

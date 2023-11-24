@@ -19,12 +19,6 @@ Matrix *create_mat(int rows, int cols);
 /* Free memory used by Matrix*/
 void free_mat(Matrix* mat);
 
-/* Set element at a given position to value */
-void set_element(Matrix* mat, int row, int col, double value);
-
-/* Get element at a given position */
-double get_element(const Matrix* mat, int row, int col);
-
 /* Multiply two matrices, store result in `out`*/
 void multiply_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out, bool back_prop);
 
@@ -37,6 +31,8 @@ void multiply_scalar_mat(const Matrix* mat, double fact, const Matrix* out);
 /* Subtract two matrices, store result in `out`*/
 void subtract_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out);
 
+void add_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out);
+
 /* Multiply two matrices, only by elements, store result in `result` */
 void elem_multiply_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* result);
 
@@ -48,11 +44,5 @@ double sum_mat(Matrix *mat);
 
 /* Transpose matrix, return a new one */
 Matrix *transpose_mat(const Matrix* input);
-
-/* Create matrix from an array, containing rows * cols elements */
-Matrix *mat_from_array(int rows, int cols, double* array);
-
-/* Copy matrix into a new one */
-Matrix *copy_mat(Matrix* mat);
 
 #endif

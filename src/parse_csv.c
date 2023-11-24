@@ -104,13 +104,13 @@ int parse_csv_vectors(const char* filename, Matrix ***ptr_to_mat_array, int is_i
         if (c == ',' || c == '\n') {
             // Convert the buffer to a double and store it in the matrix
             double value = atof(buffer);
-            set_element((*ptr_to_mat_array)[row], 0, col, (value - 128) / 128);  // normalize fashion input
+            (*ptr_to_mat_array)[row]->data[0][col] = (value / 255.0) -0.5;  // normalize fashion input
             memset(buffer, 0, sizeof(buffer)); // Clear the buffer
             col++;
 
             if (col == cols) {
                 if (is_input) {
-                    set_element((*ptr_to_mat_array)[row], 0, 0, 1);
+                    (*ptr_to_mat_array)[row]->data[0][0] = 1;
                 }
                 col = is_input;
                 row++;
@@ -133,7 +133,7 @@ void print_matrices(Matrix **matrix_array, int num_matrices) {
         printf("Matrix %d:\n", i + 1);
         for (int row = 0; row < matrix_array[i]->rows; row++) {
             for (int col = 0; col < matrix_array[i]->cols; col++) {
-                printf("%lf ", get_element(matrix_array[i], row, col));
+                printf("%lf ", matrix_array[i]->data[row][col]);
             }
             printf("\n");
         }
