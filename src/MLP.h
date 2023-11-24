@@ -5,11 +5,13 @@
 #include "activation_functions.h"
 
 
+#define NUM_THREADS 12
+
+
 typedef void (*func_ptr)(const Matrix *, const Matrix *);
 
 /*
     Multi-layer Perceptron.
-    Each array is num_hidden_layers + 1 (output layer) long.
 */
 typedef struct {
     /* Set on start */
@@ -17,22 +19,27 @@ typedef struct {
     func_ptr* activation_functions;     /* Array of activation functions */
     func_ptr* activation_funs_der;      /* Array of derived activation functions */
 
-    /* Forward pass */
+    /* Shared arrays
+       Length: num_hidden_layers + 1 (output layer)
+    */
     Matrix** weights;                   /* Array of weight matrices */
-    Matrix** inner_potentials;          /* Array of inner potential vectors */
-    Matrix** neuron_outputs;            /* Array of neuron output vectors */
-
-    /* Backpropagation */
-    Matrix** error_derivatives;         /* Array of error function partial derivatives by neuron outputs (transponed) */
-    Matrix** activation_derivatives;    /* Array of activation function derivatives vectors (transponed) */
-    Matrix** weight_derivatives;        /* Array of error function partial derivatives by weights vectors */
-
     Matrix** weight_deltas;             /* Momentum of weight derivatives */
 
     // Adam
     Matrix** first_momentum;
     Matrix** second_momentum;
 
+
+    /* Thread specific arrays
+       Length: [NUM_THREADS][num_hidden_layers + 1]
+    */
+    Matrix*** inner_potentials;          /* Array of inner potential vectors */
+    Matrix*** neuron_outputs;            /* Array of neuron output vectors */
+
+    // Backpropagation
+    Matrix*** error_derivatives;         /* Array of error function partial derivatives by neuron outputs (transponed) */
+    Matrix*** activation_derivatives;    /* Array of activation function derivatives vectors (transponed) */
+    Matrix*** weight_derivatives;        /* Array of error function partial derivatives by weights vectors */
 } MLP;
 
 /* Create a MLP */
@@ -46,10 +53,10 @@ void free_mlp(MLP* mlp);
 void initialize_weights(MLP* mlp, int seed);
 
 /* Compute neuron outputs */
-Matrix *forward_pass(MLP* mlp, Matrix *input);
+Matrix *forward_pass(MLP* mlp, Matrix *input, int thread);
 
 /* Compute error function partial derivatives by weights */
-void backpropagate(MLP* mlp, Matrix *input, Matrix *target_output);
+void backpropagate(MLP* mlp, Matrix *input, Matrix *target_output, int thread);
 
 /* Update the weights */
 void gradient_descent(MLP *mlp, double learning_rate, int batch_size, double aplha);

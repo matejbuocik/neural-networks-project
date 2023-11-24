@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <math.h>
+#include <omp.h>
 #include "parse_csv.h"
 #include "activation_functions.h"
 
@@ -14,27 +15,57 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
     mlp.activation_functions = activation_functions;
     mlp.activation_funs_der = activation_funs_der;
 
-    // allocate memory for arrays
+    /* Shared arrays */
     mlp.weights                 = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
-    mlp.inner_potentials        = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
-    mlp.neuron_outputs          = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
-
-    // the error_derivatives[-1] is added for extensions of the MLP with adding preceding layers
-    // in such case this filed is needed for the backpropagation on the whole ensemble
-    mlp.error_derivatives       = (Matrix**) malloc((num_hidden_layers + 2) * sizeof(Matrix*));
-    mlp.error_derivatives       = mlp.error_derivatives + 1;
-    mlp.error_derivatives[-1]   = create_mat(input_size, 1);
-
-    mlp.activation_derivatives  = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
-    mlp.weight_derivatives      = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
     mlp.weight_deltas           = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
 
     // Adam
     mlp.first_momentum          = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
     mlp.second_momentum         = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
 
+    /* Initialize shared arrays */
+    for (int i = 0; i <= num_hidden_layers; i++) {
+        int rows = (i == 0) ? input_size : hidden_layer_sizes[i - 1];  // neurons in previous layer
+        int cols = hidden_layer_sizes[i];  // neurons in the next layer
+        if (i == num_hidden_layers) {
+            cols = output_size;
+        }
 
-    // initialize allocated arrays
+        rows += 1;  // Add 1 for bias
+
+        mlp.weights[i] = create_mat(rows, cols);
+        mlp.weight_deltas[i] = create_mat(rows, cols);
+
+        // Adam
+        mlp.first_momentum[i] = create_mat(rows, cols);
+        mlp.second_momentum[i] = create_mat(rows, cols);
+    }
+
+
+    /* Thread specific arrays */
+    mlp.inner_potentials        = (Matrix***) malloc(NUM_THREADS * sizeof(Matrix**));
+    mlp.neuron_outputs          = (Matrix***) malloc(NUM_THREADS * sizeof(Matrix**));
+
+    mlp.error_derivatives       = (Matrix***) malloc(NUM_THREADS * sizeof(Matrix**));
+
+    mlp.activation_derivatives  = (Matrix***) malloc(NUM_THREADS * sizeof(Matrix**));
+    mlp.weight_derivatives      = (Matrix***) malloc(NUM_THREADS * sizeof(Matrix**));
+
+    for (int t = 0; t < NUM_THREADS; t++) {
+        mlp.inner_potentials[t]        = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
+        mlp.neuron_outputs[t]          = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
+
+        // the error_derivatives[-1] is added for extensions of the MLP with adding preceding layers
+        // in such case this filed is needed for the backpropagation on the whole ensemble
+        mlp.error_derivatives[t]       = (Matrix**) malloc((num_hidden_layers + 2) * sizeof(Matrix*));
+        mlp.error_derivatives[t]       = mlp.error_derivatives[t] + 1;
+        mlp.error_derivatives[t][-1]   = create_mat(input_size, 1);
+
+        mlp.activation_derivatives[t]  = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
+        mlp.weight_derivatives[t]      = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
+    }
+
+    /* Initialize thread-specific arrays */
     int i;
     int plus_one_output_col = 1;
     for (i = 0; i <= num_hidden_layers; i++) {
@@ -47,51 +78,56 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
 
         rows += 1;  // Add 1 for bias
 
-        mlp.weights[i] = create_mat(rows, cols);
-        mlp.weight_derivatives[i] = create_mat(rows, cols);
-        mlp.weight_deltas[i] = create_mat(rows, cols);
-
-        // Adam
-        mlp.first_momentum[i] = create_mat(rows, cols);
-        mlp.second_momentum[i] = create_mat(rows, cols);
-
-        mlp.inner_potentials[i] = create_mat(1, cols);
-        mlp.neuron_outputs[i] = create_mat(1, cols + plus_one_output_col);  // First one will always be one (input for bias)
-        mlp.error_derivatives[i] = create_mat(cols, 1);
-        mlp.activation_derivatives[i] = create_mat(cols, 1);
+        for (int t = 0; t < NUM_THREADS; t++) {
+            mlp.weight_derivatives[t][i] = create_mat(rows, cols);
+            mlp.inner_potentials[t][i] = create_mat(1, cols);
+            mlp.neuron_outputs[t][i] = create_mat(1, cols + plus_one_output_col);  // First one will always be one (input for bias)
+            mlp.error_derivatives[t][i] = create_mat(cols, 1);
+            mlp.activation_derivatives[t][i] = create_mat(cols, 1);
+        }
     }
 
     return mlp;
 }
 
 void free_mlp(MLP* mlp) {
+    /* Free shared arrays */
     for (int i = 0; i <= mlp->num_hidden_layers; i++) {
         free_mat(mlp->weights[i]);
-        free_mat(mlp->weight_derivatives[i]);
         free_mat(mlp->weight_deltas[i]);
 
         free_mat(mlp->first_momentum[i]);
         free_mat(mlp->second_momentum[i]);
-
-        free_mat(mlp->inner_potentials[i]);
-        free_mat(mlp->neuron_outputs[i]);
-
-        free_mat(mlp->error_derivatives[i]);
-        free_mat(mlp->activation_derivatives[i]);
-
     }
 
     free(mlp->weights);
-    free(mlp->inner_potentials);
-    free(mlp->neuron_outputs);
-
+    free(mlp->weight_deltas);
     free(mlp->first_momentum);
     free(mlp->second_momentum);
 
-    free(mlp->error_derivatives - 1);  // :D
+
+    /* Free thread-specific arrays*/
+    for (int t = 0; t < NUM_THREADS; t++) {
+        for (int i = 0; i <= mlp->num_hidden_layers; i++) {
+            free_mat(mlp->weight_derivatives[t][i]);
+            free_mat(mlp->inner_potentials[t][i]);
+            free_mat(mlp->neuron_outputs[t][i]);
+            free_mat(mlp->error_derivatives[t][i]);
+            free_mat(mlp->activation_derivatives[t][i]);
+        }
+
+        free(mlp->inner_potentials[t]);
+        free(mlp->neuron_outputs[t]);
+        free(mlp->error_derivatives[t] - 1);  // :D
+        free(mlp->activation_derivatives[t]);
+        free(mlp->weight_derivatives[t]);
+    }
+
+    free(mlp->inner_potentials);
+    free(mlp->neuron_outputs);
+    free(mlp->error_derivatives);  // :D
     free(mlp->activation_derivatives);
     free(mlp->weight_derivatives);
-    free(mlp->weight_deltas);
 }
 
 void initialize_weights(MLP* mlp, int seed) {
@@ -126,20 +162,20 @@ void initialize_weights(MLP* mlp, int seed) {
     }
 }
 
-Matrix *forward_pass(MLP *mlp, Matrix *input) {
+Matrix *forward_pass(MLP *mlp, Matrix *input, int thread) {
     Matrix *prev_layer = input;
 
     for (int i = 0; i <= mlp->num_hidden_layers; i++) {
-        multiply_mat(prev_layer, mlp->weights[i], mlp->inner_potentials[i], false);
-        mlp->activation_functions[i](mlp->inner_potentials[i], mlp->neuron_outputs[i]);
+        multiply_mat(prev_layer, mlp->weights[i], mlp->inner_potentials[thread][i], false);
+        mlp->activation_functions[i](mlp->inner_potentials[thread][i], mlp->neuron_outputs[thread][i]);
 
-        prev_layer = mlp->neuron_outputs[i];
+        prev_layer = mlp->neuron_outputs[thread][i];
     }
 
-    return mlp->neuron_outputs[mlp->num_hidden_layers];
+    return mlp->neuron_outputs[thread][mlp->num_hidden_layers];
 }
 
-void backpropagate(MLP *mlp, Matrix *input, Matrix *target_output) {
+void backpropagate(MLP *mlp, Matrix *input, Matrix *target_output, int thread) {
     /* USED WITH SIGMOID OUTPUT FUNCTION
     //compute derivatives of the error function with respect to the neuron outputs of the last layer
     //the result is transposed, because of the way the derivatives with regards to the neuron outputs
@@ -158,53 +194,53 @@ void backpropagate(MLP *mlp, Matrix *input, Matrix *target_output) {
     int last = mlp->num_hidden_layers;
 
     double suma_posledna_vrstva_e_na_vnutorny_potencial = 0.0;
-    for (int i = 0; i < mlp->inner_potentials[last]->cols; i++) {
-        suma_posledna_vrstva_e_na_vnutorny_potencial += exp(mlp->inner_potentials[last]->data[0][i]);
+    for (int i = 0; i < mlp->inner_potentials[thread][last]->cols; i++) {
+        suma_posledna_vrstva_e_na_vnutorny_potencial += exp(mlp->inner_potentials[thread][last]->data[0][i]);
     }
 
     for (int i = 0; i < target_output->cols; i++) {
         if (target_output->data[0][i] == 0) {
-            mlp->error_derivatives[last]->data[i][0] = 0;
+            mlp->error_derivatives[thread][last]->data[i][0] = 0;
             continue;
         }
 
         // Compute dE_k/dy_j * softmax derivation for the last layer
         // mlp->error_derivatives[last]->data[i][0] = target_output->data[0][i] / mlp->neuron_outputs[last]->data[0][i];  // dE_k/dy_j
         // mlp->error_derivatives[last]->data[i][0] *= mlp->neuron_outputs[last]->data[0][i] * (1 - mlp->neuron_outputs[last]->data[0][i]);
-        mlp->error_derivatives[last]->data[i][0] = (1 - mlp->neuron_outputs[last]->data[0][i]);  // it's the same wtf
+        mlp->error_derivatives[thread][last]->data[i][0] = (1 - mlp->neuron_outputs[thread][last]->data[0][i]);  // it's the same wtf
 
         // Next to last layer
-        for (int j = 0; j < mlp->error_derivatives[last - 1]->rows; j++) {
+        for (int j = 0; j < mlp->error_derivatives[thread][last - 1]->rows; j++) {
             double suma_s_nasobenim_vahy = 0.0;
-            for (int k = 0; k < mlp->inner_potentials[last]->cols; k++) {
-                suma_s_nasobenim_vahy += exp(mlp->inner_potentials[last]->data[0][k]) * mlp->weights[last]->data[j+1][k];
+            for (int k = 0; k < mlp->inner_potentials[thread][last]->cols; k++) {
+                suma_s_nasobenim_vahy += exp(mlp->inner_potentials[thread][last]->data[0][k]) * mlp->weights[last]->data[j+1][k];
             }
 
-            mlp->error_derivatives[last - 1]->data[j][0] = mlp->weights[last]->data[j+1][i] - suma_s_nasobenim_vahy / suma_posledna_vrstva_e_na_vnutorny_potencial;
+            mlp->error_derivatives[thread][last - 1]->data[j][0] = mlp->weights[last]->data[j+1][i] - suma_s_nasobenim_vahy / suma_posledna_vrstva_e_na_vnutorny_potencial;
         }
     }
 
-    mlp->activation_funs_der[last - 1](mlp->inner_potentials[last - 1], mlp->activation_derivatives[last - 1]);
-    elem_multiply_mat(mlp->error_derivatives[last - 1], mlp->activation_derivatives[last - 1], mlp->error_derivatives[last - 1]);
+    mlp->activation_funs_der[last - 1](mlp->inner_potentials[thread][last - 1], mlp->activation_derivatives[thread][last - 1]);
+    elem_multiply_mat(mlp->error_derivatives[thread][last - 1], mlp->activation_derivatives[thread][last - 1], mlp->error_derivatives[thread][last - 1]);
 
     for (int i = last - 2; i >= 0; i--) {
-        multiply_mat(mlp->weights[i + 1], mlp->error_derivatives[i + 1], mlp->error_derivatives[i], true);
-        mlp->activation_funs_der[i](mlp->inner_potentials[i], mlp->activation_derivatives[i]);
-        elem_multiply_mat(mlp->error_derivatives[i], mlp->activation_derivatives[i], mlp->error_derivatives[i]);
+        multiply_mat(mlp->weights[i + 1], mlp->error_derivatives[thread][i + 1], mlp->error_derivatives[thread][i], true);
+        mlp->activation_funs_der[i](mlp->inner_potentials[thread][i], mlp->activation_derivatives[thread][i]);
+        elem_multiply_mat(mlp->error_derivatives[thread][i], mlp->activation_derivatives[thread][i], mlp->error_derivatives[thread][i]);
     }
 
     // For preceding layers extensions
-    multiply_mat(mlp->weights[0], mlp->error_derivatives[0], mlp->error_derivatives[-1], true);
+    multiply_mat(mlp->weights[0], mlp->error_derivatives[thread][0], mlp->error_derivatives[thread][-1], true);
 
     // computing derivatives of the error function with respect to all weights
     for (int k = 0; k <= last; k++) {
-        for (int i = 0; i < mlp->weight_derivatives[k]->rows; i++) {
-            for (int j = 0; j < mlp->weight_derivatives[k]->cols; j++) {
-                double grad = mlp->weight_derivatives[k]->data[i][j];
+        for (int i = 0; i < mlp->weight_derivatives[thread][k]->rows; i++) {
+            for (int j = 0; j < mlp->weight_derivatives[thread][k]->cols; j++) {
+                double grad = mlp->weight_derivatives[thread][k]->data[i][j];
                 // compute derivative
-                Matrix* neuron_vals = (k == 0) ? input : mlp->neuron_outputs[k - 1];
-                grad += mlp->error_derivatives[k]->data[j][0] * neuron_vals->data[0][i];
-                mlp->weight_derivatives[k]->data[i][j] = grad;
+                Matrix* neuron_vals = (k == 0) ? input : mlp->neuron_outputs[thread][k - 1];
+                grad += mlp->error_derivatives[thread][k]->data[j][0] * neuron_vals->data[0][i];
+                mlp->weight_derivatives[thread][k]->data[i][j] = grad;
             }
         }
     }
@@ -212,14 +248,14 @@ void backpropagate(MLP *mlp, Matrix *input, Matrix *target_output) {
 
 void gradient_descent(MLP *mlp, double learning_rate, int batch_size, double alpha) {
     for (int k = 0; k <= mlp->num_hidden_layers; k++) {
-        multiply_scalar_mat(mlp->weight_derivatives[k], -learning_rate / batch_size, mlp->weight_derivatives[k]);
-        add_mat(mlp->weight_derivatives[k], mlp->weight_deltas[k], mlp->weight_deltas[k]);
+        multiply_scalar_mat(mlp->weight_derivatives[0][k], -learning_rate / batch_size, mlp->weight_derivatives[0][k]);
+        add_mat(mlp->weight_derivatives[0][k], mlp->weight_deltas[k], mlp->weight_deltas[k]);
 
         /* Update weights*/
         subtract_mat(mlp->weights[k], mlp->weight_deltas[k], mlp->weights[k]);
 
         /* Zero-out weight derivatives for the next batch */
-        multiply_scalar_mat(mlp->weight_derivatives[k], 0, mlp->weight_derivatives[k]);
+        multiply_scalar_mat(mlp->weight_derivatives[0][k], 0, mlp->weight_derivatives[0][k]);
         /* Momentum */
         multiply_scalar_mat(mlp->weight_deltas[k], alpha, mlp->weight_deltas[k]);
     }
@@ -232,7 +268,7 @@ void gradient_descent_adam(MLP *mlp, double learning_rate, int time_step, double
     for (int k = 0; k <= mlp->num_hidden_layers; k++) {
         for (int i = 0; i < mlp->weights[k]->rows; i++) {
             for (int j = 0; j < mlp->weights[k]->cols; j++) {
-                double der = mlp->weight_derivatives[k]->data[i][j];
+                double der = mlp->weight_derivatives[0][k]->data[i][j];
 
                 // Update biased first moment estimate
                 double mean = beta1 * mlp->first_momentum[k]->data[i][j] + (1 - beta1) * der;
@@ -252,7 +288,17 @@ void gradient_descent_adam(MLP *mlp, double learning_rate, int time_step, double
         }
 
         /* Zero-out weight derivatives for the next batch */
-        multiply_scalar_mat(mlp->weight_derivatives[k], 0, mlp->weight_derivatives[k]);
+        multiply_scalar_mat(mlp->weight_derivatives[0][k], 0, mlp->weight_derivatives[0][k]);
+    }
+}
+
+/* Sum all threads into first one, zero out the other ones */
+void sum_all_threads(MLP* mlp) {
+    for (int t = 1; t < NUM_THREADS; t++) {
+        for (int i = 0; i <= mlp->num_hidden_layers; i++) {
+            add_mat(mlp->weight_derivatives[0][i], mlp->weight_derivatives[t][i], mlp->weight_derivatives[0][i]);
+            multiply_scalar_mat(mlp->weight_derivatives[t][i], 0, mlp->weight_derivatives[t][i]);
+        }
     }
 }
 
@@ -263,18 +309,33 @@ void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[
     double beta1 = 0.9;
     double beta2 = 0.999;
 
-    for (int batch = 0; batch < num_batches; batch++) {
-        for (int i = 0; i < batch_size; i++) {
-            // TODO spustit na batch_size procesoroch naraz
-            int data_i = get_random_int(0, num_samples - 1);
+    omp_set_dynamic(0);     // Explicitly disable dynamic number of threads
+    omp_set_num_threads(NUM_THREADS);
 
-            forward_pass(mlp, input_data[data_i]);
-            backpropagate(mlp, input_data[data_i], target_data[data_i]);
+    unsigned int *seeds[NUM_THREADS];
+    for (int t = 0; t < NUM_THREADS; t++) {
+        seeds[t] = malloc(sizeof(unsigned int));
+        *seeds[t] = 42 + t;
+    }
+
+    for (int batch = 0; batch < num_batches; batch++) {
+        #pragma omp parallel for
+        for (int i = 0; i < batch_size; i++) {
+            int thread_num = omp_get_thread_num();
+            int data_i = get_random_int(0, num_samples - 1, seeds[thread_num]);
+            forward_pass(mlp, input_data[data_i], thread_num);
+            backpropagate(mlp, input_data[data_i], target_data[data_i], thread_num);
 
         }
+
+        sum_all_threads(mlp);
         //gradient_descent(mlp, learning_rate, batch_size, alpha);
         gradient_descent_adam(mlp, learning_rate, t, beta1, beta2);
         t++;
+    }
+
+    for (int t = 0; t < NUM_THREADS; t++) {
+        free(seeds[t]);
     }
 }
 
@@ -287,7 +348,7 @@ double test(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data
     int hits = 0;
 
     for (int i = 0; i < num_samples; i++) {
-        Matrix *computed_out = forward_pass(mlp, input_data[i]);
+        Matrix *computed_out = forward_pass(mlp, input_data[i], 0);
 
         // res += metric_fun(computed_out, target_data[i]);
 

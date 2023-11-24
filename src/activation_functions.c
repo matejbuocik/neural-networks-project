@@ -2,9 +2,9 @@
 #include <assert.h>
 
 
-int get_random_int(int min, int max) {
+int get_random_int(int min, int max, unsigned int *state) {
     int range = max - min + 1;  // include min and max
-    int random_int = min + rand() % range;
+    int random_int = min + rand_r(state) % range;
 
     return random_int;
 }

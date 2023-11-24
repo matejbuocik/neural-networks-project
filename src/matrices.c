@@ -36,12 +36,12 @@ void multiply_mat(const Matrix* mat1, const Matrix* mat2, const Matrix* out, boo
         offset = 1;
     }
 
-    #pragma omp parallel for collapse(2)
+    // #pragma omp parallel for collapse(2)
     for (int i = 0; i < rows1 - offset; i++) {
         for (int j = 0; j < cols2; j++) {
             double sum = 0.0;
 
-            #pragma omp parallel for reduction(+:sum)
+            // #pragma omp parallel for reduction(+:sum)
             for (int k = 0; k < cols1; k++) {
                 sum += mat1->data[i + offset][k] * mat2->data[k][j];
             }
