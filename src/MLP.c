@@ -312,17 +312,16 @@ void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[
     omp_set_dynamic(0);     // Explicitly disable dynamic number of threads
     omp_set_num_threads(NUM_THREADS);
 
-    unsigned int *seeds[NUM_THREADS];
+    unsigned int seeds[NUM_THREADS];
     for (int t = 0; t < NUM_THREADS; t++) {
-        seeds[t] = malloc(sizeof(unsigned int));
-        *seeds[t] = 42 + t;
+        seeds[t] = 42 + t;
     }
 
     for (int batch = 0; batch < num_batches; batch++) {
         #pragma omp parallel for
         for (int i = 0; i < batch_size; i++) {
             int thread_num = omp_get_thread_num();
-            int data_i = get_random_int(0, num_samples - 1, seeds[thread_num]);
+            int data_i = get_random_int(0, num_samples - 1, &seeds[thread_num]);
             forward_pass(mlp, input_data[data_i], thread_num);
             backpropagate(mlp, input_data[data_i], target_data[data_i], thread_num);
 
@@ -332,10 +331,6 @@ void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[
         //gradient_descent(mlp, learning_rate, batch_size, alpha);
         gradient_descent_adam(mlp, learning_rate, t, beta1, beta2);
         t++;
-    }
-
-    for (int t = 0; t < NUM_THREADS; t++) {
-        free(seeds[t]);
     }
 }
 
