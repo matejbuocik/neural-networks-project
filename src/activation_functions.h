@@ -5,7 +5,7 @@
 #include "matrices.h"
 
 
-int get_random_int(int min, int max);
+int get_random_int(int min, int max, unsigned int *state);
 
 double mse(Matrix* mat1, Matrix* mat2);
 
