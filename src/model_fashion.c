@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
     double learning_rate = 0.001;
     double alpha = 0.1;
     int num_batches = 2500;
-    int batch_size = 128;
+    int batch_size = 256;
 
     char *input_weights_path = NULL;
     char *output_weights_path = NULL;
