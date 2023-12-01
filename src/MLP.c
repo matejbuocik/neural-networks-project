@@ -3,8 +3,6 @@
 #include <time.h>
 #include <math.h>
 #include <omp.h>
-#include "parse_csv.h"
-#include "activation_functions.h"
 
 
 MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidden_layer_sizes[],
@@ -302,8 +300,7 @@ void sum_all_threads(MLP* mlp) {
     }
 }
 
-void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[],
-           double learning_rate, int num_batches, int batch_size, double alpha) {
+void train(MLP* mlp, Samples *samples, double learning_rate, int num_batches, int batch_size, double alpha) {
     // input_data[0] must be 1
     int t = 1;
     double beta1 = 0.9;
@@ -321,10 +318,9 @@ void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[
         #pragma omp parallel for
         for (int i = 0; i < batch_size; i++) {
             int thread_num = omp_get_thread_num();
-            int data_i = get_random_int(0, num_samples - 1, &seeds[thread_num]);
-            forward_pass(mlp, input_data[data_i], thread_num);
-            backpropagate(mlp, input_data[data_i], target_data[data_i], thread_num);
-
+            int data_i = get_random_int(0, samples->num_samples - 1, &seeds[thread_num]);
+            forward_pass(mlp, samples->inputs[data_i], thread_num);
+            backpropagate(mlp, samples->inputs[data_i], samples->outputs[data_i], thread_num);
         }
 
         sum_all_threads(mlp);
@@ -334,7 +330,7 @@ void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[
     }
 }
 
-double test(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[], double (*metric_fun)(Matrix*, Matrix*)) {
+double test(MLP* mlp, Samples *samples, double (*metric_fun)(Matrix*, Matrix*)) {
     if (metric_fun == NULL) {
         metric_fun = &mse;  // default metric function
     }
@@ -342,21 +338,21 @@ double test(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data
 
     int hits = 0;
 
-    for (int i = 0; i < num_samples; i++) {
-        Matrix *computed_out = forward_pass(mlp, input_data[i], 0);
+    for (int i = 0; i < samples->num_samples; i++) {
+        Matrix *computed_out = forward_pass(mlp, samples->inputs[i], 0);
 
         // res += metric_fun(computed_out, target_data[i]);
 
         double max_computed = computed_out->data[0][0];
         int max_index = 0;
         int target_index = 0;
-        for (int j = 0; j < target_data[i]->cols; j++) {
+        for (int j = 0; j < samples->outputs[i]->cols; j++) {
             if (computed_out->data[0][j] > max_computed) {
                 max_index = j;
                 max_computed = computed_out->data[0][j];
             }
 
-            if (target_data[i]->data[0][j] == 1) {
+            if (samples->outputs[i]->data[0][j] == 1) {
                 target_index = j;
             }
         }
@@ -364,7 +360,7 @@ double test(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data
         if (max_index == target_index) {
             hits++;
         } else {
-            for (int j = 0; j < target_data[i]->cols; j++) {
+            for (int j = 0; j < samples->outputs[i]->cols; j++) {
                 printf("%f, ", computed_out->data[0][j]);
             }
 
@@ -372,7 +368,7 @@ double test(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data
         }
     }
 
-    printf("%d / %d\n", hits, num_samples);
+    printf("%d / %d\n", hits, samples->num_samples);
 
     return res;
 }

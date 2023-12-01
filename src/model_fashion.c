@@ -131,35 +131,16 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    Matrix** test_inputs;
-    int test_in_n = parse_csv_vectors(test_inputs_path, &test_inputs, 1);
-
-    Matrix** test_outputs;
-    int test_out_n = parse_classification_labels(test_outputs_path, 10, &test_outputs);
-
-    if (test_in_n != test_out_n) {
-        fprintf(stderr, "Input count is different than output count\n");
-        exit(1);
-    }
+    Samples test_samples, train_samples;
+    get_samples(&test_samples, test_inputs_path, test_outputs_path, 10);
+    get_samples(&train_samples, train_inputs_path, train_outputs_path, 10);
 
     int hidden_layer_sizes[2] = {256, 64};
     func_ptr activation_funs[3] = {&ReLU, &ReLU, &softmax};
     func_ptr activation_funs_der[3] = {&ReLU_der, &ReLU_der, &softmax_der};
 
-    MLP mlp = create_mlp(test_inputs[0]->cols - 1, test_outputs[0]->cols, 2, hidden_layer_sizes,
-                         activation_funs, activation_funs_der);
-
-
-    Matrix** train_inputs;
-    int train_in_n = parse_csv_vectors(train_inputs_path, &train_inputs, 1);
-
-    Matrix** train_outputs;
-    int train_out_n = parse_classification_labels(train_outputs_path, 10, &train_outputs);
-
-    if (train_in_n != train_out_n) {
-        fprintf(stderr, "Input count is different than output count\n");
-        exit(1);
-    }
+    MLP mlp = create_mlp(test_samples.inputs[0]->cols - 1, test_samples.outputs[0]->cols, 2,
+                         hidden_layer_sizes, activation_funs, activation_funs_der);
 
     if (input_weights_path != NULL) {
         load_weights(&mlp, input_weights_path);
@@ -167,18 +148,9 @@ int main(int argc, char *argv[]) {
         initialize_weights(&mlp, 42);
     }
 
-    train(&mlp, train_in_n, train_inputs, train_outputs, learning_rate, num_batches, batch_size, alpha);
+    train(&mlp, &train_samples, learning_rate, num_batches, batch_size, alpha);
 
-    // free train inputs and outputs
-    for (int i = 0; i < train_in_n; i++) {
-        free_mat(train_inputs[i]);
-        free_mat(train_outputs[i]);
-    }
-    free(train_inputs);
-    free(train_outputs);
-
-
-    double test_res = test(&mlp, test_in_n, test_inputs, test_outputs, NULL);
+    double test_res = test(&mlp, &test_samples, NULL);
     printf("%f\n", test_res);
 
     if (output_weights_path != NULL) {
@@ -188,11 +160,7 @@ int main(int argc, char *argv[]) {
     // free model
     free_mlp(&mlp);
 
-    // free test inputs and outputs
-    for (int i = 0; i < test_in_n; i++) {
-        free_mat(test_inputs[i]);
-        free_mat(test_outputs[i]);
-    }
-    free(test_inputs);
-    free(test_outputs);
+    // free samples
+    free_samples(&test_samples);
+    free_samples(&train_samples);
 }
