@@ -56,19 +56,10 @@ void initialize_weights(MLP* mlp, int seed);
 /* Compute neuron outputs */
 Matrix *forward_pass(MLP* mlp, Matrix *input, int thread);
 
-/* Compute error function partial derivatives by weights */
-void backpropagate(MLP* mlp, Matrix *input, Matrix *target_output, int thread);
-
-/* Update the weights */
-void gradient_descent(MLP *mlp, double learning_rate, int batch_size, double aplha);
-
-/* Update the weights using Adam algorithm */
-void gradient_descent_adam(MLP *mlp, double learning_rate, int time_step, double beta1, double beta2);
-
 /* Train the MLP */
 void train(MLP* mlp, Samples *samples, double learning_rate, int num_batches, int batch_size, double alpha);
 
-/* Test the model on `input_data` using `target_data` with `metric_fun` (if NULL, use mean square error)*/
+/* Test the model with `metric_fun` (if NULL, use mean square error) */
 double test(MLP* mlp, Samples *samples, double (*metric_fun)(Matrix*, Matrix*));
 
 #endif

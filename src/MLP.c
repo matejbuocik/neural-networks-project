@@ -173,6 +173,7 @@ Matrix *forward_pass(MLP *mlp, Matrix *input, int thread) {
     return mlp->neuron_outputs[thread][mlp->num_hidden_layers];
 }
 
+/* Compute error function partial derivatives by weights */
 void backpropagate(MLP *mlp, Matrix *input, Matrix *target_output, int thread) {
     /* USED WITH SIGMOID OUTPUT FUNCTION
     //compute derivatives of the error function with respect to the neuron outputs of the last layer
@@ -244,6 +245,7 @@ void backpropagate(MLP *mlp, Matrix *input, Matrix *target_output, int thread) {
     }
 }
 
+/* Update the weights */
 void gradient_descent(MLP *mlp, double learning_rate, int batch_size, double alpha) {
     for (int k = 0; k <= mlp->num_hidden_layers; k++) {
         multiply_scalar_mat(mlp->weight_derivatives[0][k], -learning_rate / batch_size, mlp->weight_derivatives[0][k]);
@@ -259,6 +261,7 @@ void gradient_descent(MLP *mlp, double learning_rate, int batch_size, double alp
     }
 }
 
+/* Update the weights using Adam algorithm */
 void gradient_descent_adam(MLP *mlp, double learning_rate, int time_step, double beta1, double beta2) {
     // https://arxiv.org/abs/1412.6980
     double epsilon = 0.00000001;  // for corection of division by 0
