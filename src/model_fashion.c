@@ -150,8 +150,10 @@ int main(int argc, char *argv[]) {
 
     train(&mlp, &train_samples, learning_rate, num_batches, batch_size, alpha);
 
-    double test_res = test(&mlp, &test_samples, NULL);
-    printf("%f\n", test_res);
+    // double test_res = test(&mlp, &test_samples, NULL);
+    // printf("%f\n", test_res);
+    predict(&mlp, &train_samples, "train_predictions.csv");
+    predict(&mlp, &test_samples, "test_predictions.csv");
 
     if (output_weights_path != NULL) {
         save_weights(&mlp, output_weights_path);

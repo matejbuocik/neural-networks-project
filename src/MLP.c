@@ -375,3 +375,28 @@ double test(MLP* mlp, Samples *samples, double (*metric_fun)(Matrix*, Matrix*)) 
 
     return res;
 }
+
+void predict(MLP *mlp, Samples *samples, char *output_filename) {
+    FILE *file = fopen(output_filename, "w");
+    if (file == NULL) {
+        perror("open output file");
+        return;
+    }
+
+    for (int i = 0; i < samples->num_samples; i++) {
+        Matrix *computed_out = forward_pass(mlp, samples->inputs[i], 0);
+
+        double max_computed = computed_out->data[0][0];
+        int max_index = 0;
+        for (int j = 0; j < samples->outputs[i]->cols; j++) {
+            if (computed_out->data[0][j] > max_computed) {
+                max_index = j;
+                max_computed = computed_out->data[0][j];
+            }
+        }
+
+        fprintf(file, "%d\n", max_index);
+    }
+
+    fclose(file);
+}

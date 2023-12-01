@@ -62,4 +62,7 @@ void train(MLP* mlp, Samples *samples, double learning_rate, int num_batches, in
 /* Test the model with `metric_fun` (if NULL, use mean square error) */
 double test(MLP* mlp, Samples *samples, double (*metric_fun)(Matrix*, Matrix*));
 
+/* Make predictions for input samples, write results to `output_filename` */
+void predict(MLP *mlp, Samples *samples, char *output_filename);
+
 #endif
