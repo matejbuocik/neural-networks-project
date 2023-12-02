@@ -69,7 +69,6 @@ double ReLU_der_scal(double x) {
     }
 }
 
-
 void ReLU_der(const Matrix *in, const Matrix *out) {
     apply_func_mat(in, out, ReLU_der_scal, true);
 }

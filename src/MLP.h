@@ -3,6 +3,7 @@
 
 #include "matrices.h"
 #include "activation_functions.h"
+#include "parse_csv.h"
 
 
 #define NUM_THREADS 12
@@ -55,21 +56,13 @@ void initialize_weights(MLP* mlp, int seed);
 /* Compute neuron outputs */
 Matrix *forward_pass(MLP* mlp, Matrix *input, int thread);
 
-/* Compute error function partial derivatives by weights */
-void backpropagate(MLP* mlp, Matrix *input, Matrix *target_output, int thread);
-
-/* Update the weights */
-void gradient_descent(MLP *mlp, double learning_rate, int batch_size, double aplha);
-
-/* Update the weights using Adam algorithm */
-void gradient_descent_adam(MLP *mlp, double learning_rate, int time_step, double beta1, double beta2);
-
 /* Train the MLP */
-void train(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[],
-           double learning_rate, int num_batches, int batch_size, double alpha);
+void train(MLP* mlp, Samples *samples, double learning_rate, int num_batches, int batch_size, double alpha);
 
-/* Test the model on `input_data` using `target_data` with `metric_fun` (if NULL, use mean square error)*/
-double test(MLP* mlp, int num_samples, Matrix *input_data[], Matrix *target_data[],
-            double (*metric_fun)(Matrix*, Matrix*));
+/* Test the model with `metric_fun` (if NULL, use mean square error) */
+double test(MLP* mlp, Samples *samples, double (*metric_fun)(Matrix*, Matrix*));
+
+/* Make predictions for input samples, write results to `output_filename` */
+void predict(MLP *mlp, Samples *samples, char *output_filename);
 
 #endif

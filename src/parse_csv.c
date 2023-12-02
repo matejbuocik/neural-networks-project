@@ -3,6 +3,7 @@
 #include <assert.h>
 
 
+/* Parse csv file containing classification labels, return number of vectors */
 int parse_classification_labels(const char *filename, int categories, Matrix ***ptr_to_mat_array) {
     FILE* file = fopen(filename, "r");
     if (!file) {
@@ -48,6 +49,7 @@ int parse_classification_labels(const char *filename, int categories, Matrix ***
 }
 
 
+/* Parse csv file containing vectors, return number of vectors */
 int parse_csv_vectors(const char* filename, Matrix ***ptr_to_mat_array, int is_input) {
     FILE* file = fopen(filename, "r");
     if (!file) {
@@ -139,4 +141,26 @@ void print_matrices(Matrix **matrix_array, int num_matrices) {
         }
         printf("\n");
     }
+}
+
+void get_samples(Samples *samples, char *inputs_path, char *outputs_path, int num_classes) {
+    samples->num_classes = num_classes;
+    int in_n = parse_csv_vectors(inputs_path, &samples->inputs, 1);
+    int out_n = parse_classification_labels(outputs_path, num_classes, &samples->outputs);
+
+    if (in_n != out_n) {
+        fprintf(stderr, "Input count is different than output count\n");
+        exit(1);
+    }
+
+    samples->num_samples = in_n;
+}
+
+void free_samples(Samples *samples) {
+    for (int i = 0; i < samples->num_samples; i++) {
+        free_mat(samples->inputs[i]);
+        free_mat(samples->outputs[i]);
+    }
+    free(samples->inputs);
+    free(samples->outputs);
 }
