@@ -23,4 +23,4 @@ echo "#################"
 ## https://www.fi.muni.cz/tech/unix/computation.html.en
 ## especially if you are using multiple cores
 # nice -n 19 ./network
-./mlp
+nice -n 19 ./mlp
