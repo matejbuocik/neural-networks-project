@@ -1,8 +1,4 @@
-524687 Matej Buocik, 524977 Ján Feja
-## PV021 project -- Deep Learning from Scratch
-
-### DEADLINE
-Sunday 4. 12. 2023 23:59 (December 4th)
+## Neural Networks course project -- Deep Learning from Scratch
 
 ### TASK
   - Implement a neural network in a low-level programming language
@@ -75,7 +71,7 @@ are four data files included:
 ### AURA
   - Aura is a dedicated server for demanding computations. Please read
     carefully the information here:
-    https://www.fi.muni.cz/tech/unix/aura.html.en)
+    https://www.fi.muni.cz/tech/unix/aura.html.en
   - All students enrolled in this course have been granted access to Aura,
     please check it soon and let me know if there are any problems.
   - Aura runs on Red Hat Enterprise Linux operating system
@@ -142,7 +138,3 @@ are four data files included:
 **A:** Yes, but it might be much harder.
 
 Best luck with the project!
-
-Tomáš Foltýnek
-foltynek@fi.muni.cz
-PV021 Neural Networks
