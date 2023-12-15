@@ -1,5 +1,12 @@
 ## Neural Networks course project -- Deep Learning from Scratch
 
+- Starting point is in `src/model_fashion.c`
+- `#define NUM_THREADS 12` is in `src/MLP.h`, put in desired number of threads
+- Run by `./run.sh`, or manually `make` and `./mlp`, see `./mlp --help` for help
+- Predictions on train set: `train_predictions.csv`
+- Predictions on test set: `test_predictions.csv`
+- Evaluate with `python3 evaluator/evaluate.py test_predictions.csv data/fashion_mnist_test_labels.csv`
+
 ### TASK
   - Implement a neural network in a low-level programming language
     (C/C++/Java/C#/Rust) without the use of advanced libraries or frameworks.
