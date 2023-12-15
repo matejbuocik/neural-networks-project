@@ -2,3 +2,5 @@ a.out
 *.o
 mlp
 con
+test_predictions.csv
+train_predictions.csv
