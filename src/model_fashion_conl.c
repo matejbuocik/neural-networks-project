@@ -6,6 +6,8 @@
 #include <getopt.h>
 
 
+/* CONVOLUTION LAYER IS WIP */
+
 extern char *optarg;
 
 void print_help() {

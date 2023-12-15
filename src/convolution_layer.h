@@ -4,6 +4,8 @@
 # include "MLP.h"
 
 
+/* CONVOLUTION LAYER IS WIP */
+
 typedef struct {
     /* Set on start */
     int neurons_in_feat_map;

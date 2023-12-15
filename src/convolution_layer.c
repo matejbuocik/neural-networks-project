@@ -1,6 +1,7 @@
 #include "convolution_layer.h"
 #include "parse_csv.h"
 
+/* CONVOLUTION LAYER IS WIP */
 
 ConLayer create_con_layer(int input_width, int input_height, int num_feature_maps, int kernel_size, int pool_size,
                           func_ptr activation_function, func_ptr activation_fun_der, MLP* mlp) {//CHANGE
