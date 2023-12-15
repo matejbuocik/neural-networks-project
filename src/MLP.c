@@ -14,12 +14,12 @@ MLP create_mlp(int input_size, int output_size, int num_hidden_layers, int hidde
     mlp.activation_funs_der = activation_funs_der;
 
     /* Shared arrays */
-    mlp.weights                 = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
-    mlp.weight_deltas           = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
+    mlp.weights         = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
+    mlp.weight_deltas   = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
 
     // Adam
-    mlp.first_momentum          = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
-    mlp.second_momentum         = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
+    mlp.first_momentum  = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
+    mlp.second_momentum = (Matrix**) malloc((num_hidden_layers + 1) * sizeof(Matrix*));
 
     /* Initialize shared arrays */
     for (int i = 0; i <= num_hidden_layers; i++) {
@@ -206,7 +206,7 @@ void backpropagate(MLP *mlp, Matrix *input, Matrix *target_output, int thread) {
         // Compute dE_k/dy_j * softmax derivation for the last layer
         // mlp->error_derivatives[last]->data[i][0] = target_output->data[0][i] / mlp->neuron_outputs[last]->data[0][i];  // dE_k/dy_j
         // mlp->error_derivatives[last]->data[i][0] *= mlp->neuron_outputs[last]->data[0][i] * (1 - mlp->neuron_outputs[last]->data[0][i]);
-        mlp->error_derivatives[thread][last]->data[i][0] = (1 - mlp->neuron_outputs[thread][last]->data[0][i]);  // it's the same wtf
+        mlp->error_derivatives[thread][last]->data[i][0] = (1 - mlp->neuron_outputs[thread][last]->data[0][i]);  // it's the same
 
         // Next to last layer
         for (int j = 0; j < mlp->error_derivatives[thread][last - 1]->rows; j++) {
@@ -327,6 +327,8 @@ void train(MLP* mlp, Samples *samples, double learning_rate, int num_batches, in
         }
 
         sum_all_threads(mlp);
+
+        alpha = alpha;  // because of unused parameter warning, used in basic grad descent
         //gradient_descent(mlp, learning_rate, batch_size, alpha);
         gradient_descent_adam(mlp, learning_rate, t, beta1, beta2);
         t++;
